@@ -1,0 +1,151 @@
+@startuml covid sos datamodel
+
+enum Layer2Type {
+  ZK_SYNC = 'ZK_SYNC'
+  LOOPRING = 'LRC'
+}
+
+class Operation {
+  address: string
+  amount: string
+}
+
+class Deposit {
+}
+Operation <|-- Deposit
+class TokenDeposit {
+  token: string
+  approveForErc20: bool
+}
+Deposit <|-- TokenDeposit
+
+class Transfer {
+}
+Operation <|-- Transfer
+class TokenTransfer {
+  token: string
+}
+Transfer <|-- TokenTransfer
+
+class Withdrawal {
+}
+Operation <|-- Withdrawal
+class TokenWithdrawal {
+  token: string
+}
+Withdrawal <|-- TokenWithdrawal
+
+
+interface StablePayLayer2 {
+  getBalance(layer2Type: Layer2Type, token: string): string
+  getBalanceVerified(layer2Type: Layer2Type, token: string): string
+
+  getProviderByLayer2Type(layer2Type: Layer2Type): StablePayLayer2Provider
+  getProviderByName(name: string)
+  registerProvider(provider: StablePayLayer2Provider): bool
+  getProviders(): Set<StablePayLayer2Provider>
+}
+
+interface StablePayLayer2Provider {
+  constructor(wallet: Wallet)
+
+  + getName(): string
+  + getDescription(): string
+  + getWallet(): Wallet
+  + getBalance(token: string): string
+  + getBalanceVerified(token: string): string
+  + getSupportedLayer2Type(): Layer2Type
+  + getSupportedTokens(): Set<string>
+
+  + performDeposit(deposit: Deposit): DepositResult
+  + performTransfer(transfer: Transfer): TransferResult
+  + performWithdrawal(withdrawal: Withdrawal): WithdrawalResult
+}
+
+class OperationResult {
+  awaitReceipt(): Receipt
+  awaitReceiptVerify(): Receipt
+}
+
+class DepositResult {
+}
+OperationResult <|-- DepositResult
+
+class TransferResult {
+}
+OperationResult <|-- TransferResult
+
+class WithdrawalResult {
+}
+OperationResult <|-- WithdrawalResult
+
+class Receipt() {
+  isVerified(): boolean
+}
+
+
+
+' class CollectionCenter {
+'   *name: string
+'   address : string
+'   *email: string
+'   province: string
+'   canton: string
+'   distrito: string
+'   exactAddress: string
+' }
+
+' class Manager {
+'   *documentId: string
+' }
+
+' class Carrier {
+'   *address : string
+' }
+
+' class Merchandise {
+'   *arrivalTime: DateTime
+'   *collectionCenter: CollectionCenter
+'   *photo: Image
+'   description: string
+'   departureTime: DateTime
+' }
+
+' class AidPackage {
+'   *beneficiary: Beneficiary
+'   *status: AidPackageStatusType
+'   *description: string
+'   *photo: Image
+'   *collectionCenter: CollectionCenter
+'   carrier: Carrier
+' }
+
+' enum RoleType {
+'   Director = 4
+'   Manager = 3
+'   Carrier = 2
+'   Visitor = 1
+'   Beneficiary = 0
+' }
+
+' enum AidPackageStatusType {
+'   New
+'   Approved
+'   Rejected
+'   InTransit
+'   Delivered
+' }
+
+' enum BeneficiaryType {
+'   Critical = 3
+'   Accepted = 2
+'   Rejected = 1
+' }
+
+' AidPackage "0..*" -- "1" CollectionCenter
+' Manager "0..1" -- "1..* centers" CollectionCenter : manage >
+' CollectionCenter "  1 collectionCenter" -- "0..* products" Merchandise : has >
+' Carrier "0..1 carrier" -- AidPackage : delivers >
+' Carrier "0..*" -- "0..1" CollectionCenter : affiliated to >
+' Beneficiary "1 beneficiary" -- AidPackage : AidPackages >
+@enduml

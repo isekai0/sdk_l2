@@ -1,0 +1,28 @@
+{
+  "name": "@stablepay/sdk_l2",
+  "version": "1.0.0",
+  "description": "StablePay JavaScript SDK for Layer 2 Library",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StablePay/sdk_l2.git"
+  },
+  "author": "https://stablepay.io/about",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/StablePay/sdk_l2/issues"
+  },
+  "homepage": "https://github.com/StablePay/sdk_l2#readme",
+  "devDependencies": {
+    "ts-jest": "^26.1.1",
+    "jest": "^26.1.0",
+    "typescript": "^3.9.6"
+  },
+  "dependencies": {}
+}
