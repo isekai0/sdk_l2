@@ -1,3 +1,0 @@
-interface Receipt {
-  isVerified(): boolean;
-}

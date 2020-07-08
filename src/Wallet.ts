@@ -1,1 +1,3 @@
-export interface Wallet {}
+export interface Wallet {
+  // TODO: Define methods.
+}

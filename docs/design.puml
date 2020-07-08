@@ -63,8 +63,8 @@ interface StablePayLayer2Provider {
 }
 
 class OperationResult {
-  awaitReceipt(): Receipt
-  awaitReceiptVerify(): Receipt
+  awaitReceipt(): void
+  awaitReceiptVerify(): void
 }
 
 class DepositResult {

@@ -1,10 +1,18 @@
-interface OperationResult {
+interface Result {
   awaitReceipt(): Receipt;
   awaitReceiptVerify(): Receipt;
 }
+interface DepositResult extends Result {
+  awaitReceipt(): DepositReceipt;
+  awaitReceiptVerify(): DepositReceipt;
+}
 
-interface DepositResult extends OperationResult {}
+interface TransferResult extends Result {
+  awaitReceipt(): TransferReceipt;
+  awaitReceiptVerify(): TransferReceipt;
+}
 
-interface TransferResult extends OperationResult {}
-
-interface WithdrawalResult extends OperationResult {}
+interface WithdrawalResult extends Result {
+  awaitReceipt(): TransferReceipt;
+  awaitReceiptVerify(): TransferReceipt;
+}
