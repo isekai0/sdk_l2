@@ -10,7 +10,7 @@ enum OperationType {
 }
 
 type Operation = {
-  address: string;
+  toAddress: string;
   amount: string;
   fee: string;
 };
@@ -26,23 +26,23 @@ type Withdrawal = Operation & {
 };
 
 type TokenDeposit = Deposit & {
-  token: string;
+  tokenSymbol: string;
   approveForErc20: boolean;
 };
 
 type TokenTransfer = Transfer & {
-  token: string;
+  tokenSymbol: string;
 };
 
 type TokenWithdrawal = Withdrawal & {
-  token: string;
+  tokenSymbol: string;
 };
 
 type Receipt = {
   operationType: any;
   from: string;
   to: string;
-  token: string; // ETH in case of no token
+  tokenSymbol: string; // ETH in case of no token
   amount: string;
   fee: string;
   blockNumber: number;
@@ -57,29 +57,12 @@ type Receipt = {
 
 type DepositReceipt = Receipt & {
   operationType: OperationType.Deposit;
-  l2_data: {
-    accountId: string;
-  };
 };
 
 type TransferReceipt = Receipt & {
   operationType: OperationType.Transfer;
-  l2_data: {
-    accountId: string;
-    signature: {
-      pubKey: string;
-      signature: string;
-    };
-  };
 };
 
 type WithdrawalReceipt = Receipt & {
   operationType: OperationType.Withdrawal;
-  l2_data: {
-    accountId: string;
-    signature: {
-      pubKey: string;
-      signature: string;
-    };
-  };
 };

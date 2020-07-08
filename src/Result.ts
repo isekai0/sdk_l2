@@ -1,18 +1,18 @@
 interface Result {
-  awaitReceipt(): Receipt;
-  awaitReceiptVerify(): Receipt;
+  getReceipt(): Promise<Receipt>;
+  getReceiptVerify(): Promise<Receipt>;
 }
 interface DepositResult extends Result {
-  awaitReceipt(): DepositReceipt;
-  awaitReceiptVerify(): DepositReceipt;
+  getReceipt(): Promise<DepositReceipt>;
+  getReceiptVerify(): Promise<DepositReceipt>;
 }
 
 interface TransferResult extends Result {
-  awaitReceipt(): TransferReceipt;
-  awaitReceiptVerify(): TransferReceipt;
+  getReceipt(): Promise<TransferReceipt>;
+  getReceiptVerify(): Promise<TransferReceipt>;
 }
 
 interface WithdrawalResult extends Result {
-  awaitReceipt(): TransferReceipt;
-  awaitReceiptVerify(): TransferReceipt;
+  getReceipt(): Promise<TransferReceipt>;
+  getReceiptVerify(): Promise<TransferReceipt>;
 }

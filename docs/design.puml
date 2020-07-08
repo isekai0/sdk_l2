@@ -5,16 +5,23 @@ enum Layer2Type {
   LOOPRING = 'LRC'
 }
 
+enum OperationType {
+  Deposit = "Deposit",
+  Transfer = "Transfer",
+  Withdrawal = "Withdrawal",
+}
+
 class Operation {
-  address: string
+  toAddress: string
   amount: string
+  fee: string
 }
 
 class Deposit {
 }
 Operation <|-- Deposit
 class TokenDeposit {
-  token: string
+  tokenSymbol: string
   approveForErc20: bool
 }
 Deposit <|-- TokenDeposit
@@ -23,7 +30,7 @@ class Transfer {
 }
 Operation <|-- Transfer
 class TokenTransfer {
-  token: string
+  tokenSymbol: string
 }
 Transfer <|-- TokenTransfer
 
@@ -31,18 +38,18 @@ class Withdrawal {
 }
 Operation <|-- Withdrawal
 class TokenWithdrawal {
-  token: string
+  tokenSymbol: string
 }
 Withdrawal <|-- TokenWithdrawal
 
 
-interface StablePayLayer2 {
-  getBalance(layer2Type: Layer2Type, token: string): string
-  getBalanceVerified(layer2Type: Layer2Type, token: string): string
+interface StablePayLayer2Manager {
+  getBalance(layer2Type: Layer2Type, tokenSymbol: string): string
+  getBalanceVerified(layer2Type: Layer2Type, tokenSymbol: string): string
 
   getProviderByLayer2Type(layer2Type: Layer2Type): StablePayLayer2Provider
   getProviderByName(name: string)
-  registerProvider(provider: StablePayLayer2Provider): bool
+  registerProvider(provider: StablePayLayer2Provider): boolean
   getProviders(): Set<StablePayLayer2Provider>
 }
 
@@ -52,8 +59,8 @@ interface StablePayLayer2Provider {
   + getName(): string
   + getDescription(): string
   + getWallet(): Wallet
-  + getBalance(token: string): string
-  + getBalanceVerified(token: string): string
+  + getBalance(tokenSymbol: string): string
+  + getBalanceVerified(tokenSymbol: string): string
   + getSupportedLayer2Type(): Layer2Type
   + getSupportedTokens(): Set<string>
 
@@ -63,8 +70,8 @@ interface StablePayLayer2Provider {
 }
 
 class OperationResult {
-  awaitReceipt(): void
-  awaitReceiptVerify(): void
+  async getReceipt(): Receipt
+  async getReceiptVerify(): Receipt
 }
 
 class DepositResult {
@@ -83,69 +90,4 @@ class Receipt() {
   isVerified(): boolean
 }
 
-
-
-' class CollectionCenter {
-'   *name: string
-'   address : string
-'   *email: string
-'   province: string
-'   canton: string
-'   distrito: string
-'   exactAddress: string
-' }
-
-' class Manager {
-'   *documentId: string
-' }
-
-' class Carrier {
-'   *address : string
-' }
-
-' class Merchandise {
-'   *arrivalTime: DateTime
-'   *collectionCenter: CollectionCenter
-'   *photo: Image
-'   description: string
-'   departureTime: DateTime
-' }
-
-' class AidPackage {
-'   *beneficiary: Beneficiary
-'   *status: AidPackageStatusType
-'   *description: string
-'   *photo: Image
-'   *collectionCenter: CollectionCenter
-'   carrier: Carrier
-' }
-
-' enum RoleType {
-'   Director = 4
-'   Manager = 3
-'   Carrier = 2
-'   Visitor = 1
-'   Beneficiary = 0
-' }
-
-' enum AidPackageStatusType {
-'   New
-'   Approved
-'   Rejected
-'   InTransit
-'   Delivered
-' }
-
-' enum BeneficiaryType {
-'   Critical = 3
-'   Accepted = 2
-'   Rejected = 1
-' }
-
-' AidPackage "0..*" -- "1" CollectionCenter
-' Manager "0..1" -- "1..* centers" CollectionCenter : manage >
-' CollectionCenter "  1 collectionCenter" -- "0..* products" Merchandise : has >
-' Carrier "0..1 carrier" -- AidPackage : delivers >
-' Carrier "0..*" -- "0..1" CollectionCenter : affiliated to >
-' Beneficiary "1 beneficiary" -- AidPackage : AidPackages >
 @enduml

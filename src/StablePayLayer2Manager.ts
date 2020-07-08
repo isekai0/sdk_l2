@@ -1,8 +1,8 @@
 import { StablePayLayer2Provider } from "StablePayLayer2Provider";
 
 export interface StablePayLayer2Manager {
-  getBalance(layer2Type: Layer2Type, token: string): string;
-  getBalanceVerified(layer2Type: Layer2Type, token: string): string;
+  getBalance(layer2Type: Layer2Type, tokenSymbol: string): string;
+  getBalanceVerified(layer2Type: Layer2Type, tokenSymbol: string): string;
 
   getProviderByLayer2Type(layer2Type: Layer2Type): StablePayLayer2Provider;
   getProviderByName(name: string): StablePayLayer2Provider;
