@@ -5,6 +5,12 @@ export enum Layer2Type {
   LOOPRING = 'LRC',
 }
 
+export enum AccountBalanceState {
+  Pending = 'pending',
+  Commited = 'commited',
+  Verified = 'verified',
+}
+
 export enum OperationType {
   Deposit = 'Deposit',
   Transfer = 'Transfer',
@@ -44,20 +50,6 @@ export type Receipt = {
 };
 
 export interface Result {
-  getReceipt(): Promise<Receipt>;
-  getReceiptVerify(): Promise<Receipt>;
-}
-export interface DepositResult extends Result {
-  getReceipt(): Promise<Receipt>;
-  getReceiptVerify(): Promise<Receipt>;
-}
-
-export interface TransferResult extends Result {
-  getReceipt(): Promise<Receipt>;
-  getReceiptVerify(): Promise<Receipt>;
-}
-
-export interface WithdrawalResult extends Result {
   getReceipt(): Promise<Receipt>;
   getReceiptVerify(): Promise<Receipt>;
 }

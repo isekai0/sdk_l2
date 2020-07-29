@@ -16,4 +16,3 @@ jobs:
         run: yarn build
       - name: Running tests
         run: yarn test
-
