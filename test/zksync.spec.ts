@@ -1,11 +1,44 @@
 import * as zksync from 'zksync';
 import { ZkSyncResult } from '../src/zksync/ZkSyncResult';
 import { OperationType, Layer2Type } from '../src/types';
-import { Deposit } from '../src/Operation';
+import { Deposit, Withdrawal, Transfer } from '../src/Operation';
 import { StablePayLayer2Manager } from '../src/StablePayLayer2Manager';
+import { StablePayLayer2Provider } from '../src/StablePayLayer2Provider';
 import { ethers } from 'ethers';
+import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
+import { Layer2Wallet } from '../src/Layer2Wallet';
 
 require('dotenv').config();
+
+// Global variables to all tests.
+let layer2ProviderManager: StablePayLayer2Manager;
+let provider: StablePayLayer2Provider;
+let layer2WalletBuilder: Layer2WalletBuilder;
+let ethersSigner: ethers.Signer;
+let layer2Wallet: Layer2Wallet;
+
+beforeAll(async () => {
+  layer2ProviderManager = StablePayLayer2Manager.Instance;
+
+  // Obtain reference to the L2 provider.
+  provider = await layer2ProviderManager.getProviderByLayer2Type(
+    Layer2Type.ZK_SYNC,
+    'rinkeby'
+  );
+
+  // Obtain layer-2 wallet builder.
+  layer2WalletBuilder = provider.getLayer2WalletBuilder();
+
+  // Show how to obtain the ethers Signer.
+  ethersSigner = getMockedSigner();
+
+  // Obtain the layer-2 wallet from provider-specific options.
+  layer2Wallet = await layer2WalletBuilder.fromOptions({ ethersSigner });
+
+  // Required expectations.
+  expect(provider.getSupportedLayer2Type()).toBe(Layer2Type.ZK_SYNC);
+  expect(provider.getName().length).toBeGreaterThan(0);
+});
 
 test('depositResult', async () => {
   const fakeDepositResultHolder: any = {
@@ -44,38 +77,7 @@ test('depositResult', async () => {
 });
 
 // TODO: enable when mocked providers injected to manager.
-xtest('obtain provider', async () => {
-  const layer2ProviderManager = StablePayLayer2Manager.Instance;
-
-  // Method under test.
-  const provider = await layer2ProviderManager.getProviderByLayer2Type(
-    Layer2Type.ZK_SYNC,
-    'rinkeby'
-  );
-
-  expect(provider.getSupportedLayer2Type()).toBe(Layer2Type.ZK_SYNC);
-  expect(provider.getName().length).toBeGreaterThan(0);
-});
-
-// TODO: enable when mocked providers injected to manager.
 xtest('get balance', async () => {
-  const layer2ProviderManager = StablePayLayer2Manager.Instance;
-
-  const provider = await layer2ProviderManager.getProviderByLayer2Type(
-    Layer2Type.ZK_SYNC,
-    'rinkeby'
-  );
-
-  const layer2WalletBuilder = provider.getLayer2WalletBuilder();
-
-  const DO_NOT_REVEAL_THESE_MNEMONICS = process.env.TEST_MNEMONICS;
-  expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy;
-
-  // Method under test.
-  const layer2Wallet = await layer2WalletBuilder.fromMnemonic(
-    DO_NOT_REVEAL_THESE_MNEMONICS!
-  );
-
   const address = await layer2Wallet.getAddress();
   console.log(`BOUND ADDRESS ${address}`);
 
@@ -92,26 +94,95 @@ xtest('get balance', async () => {
 
 // TODO: Enable when signer can be mocked simulating blocknative
 xtest('layer-2 wallet from custom signer', async () => {
-  const layer2ProviderManager = StablePayLayer2Manager.Instance;
-
-  const provider = await layer2ProviderManager.getProviderByLayer2Type(
-    Layer2Type.ZK_SYNC,
-    'rinkeby'
-  );
-
-  // Obtain layer-2 wallet builder.
-  const layer2WalletBuilder = provider.getLayer2WalletBuilder();
-
-  // Show how to obtain the ethers Signer.
-  const ethersSigner = getMockedSigner();
-
   // Method under test.
-  // Obtain the layer-2 wallet from provider-specific options.
-  const layer2Wallet = await layer2WalletBuilder.fromOptions({ ethersSigner });
+  const balance = await layer2Wallet.getBalance();
+  // Expectations.
+  expect(balance).toBeTruthy();
+});
+
+xtest('layer-2 deposit from layer-1', async () => {
+  // I am going to deposit to my own address in L2.
+  const myAddress = layer2Wallet.getAddress();
+
+  // Create Deposit data.
+  const deposit = Deposit.createDeposit({
+    toAddress: myAddress,
+    amount: '0.1', // Desired amount
+    fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
+  });
+
+  // Method under test. Perform DEPOSIT operation.
+  const result = await layer2Wallet.deposit(deposit);
+
+  // The result object contains the necessary methods to obtain a receipt
+  // either Verified or non-verified. Verified takes long.
+  const receipt = await result.getReceipt();
 
   // Expectations.
-  const balance = await layer2Wallet.getBalance();
-  expect(balance).toBeTruthy;
+  expect(receipt.operationType).toBe(OperationType.Deposit);
+  expect(receipt.to).toBe(myAddress);
+  expect(receipt.committed).toBeTruthy();
+});
+
+xtest('layer-2 withdraw back to address in layer-1', async () => {
+  // I am going to withdraw back to my own address in layer one.
+  const myAddress = layer2Wallet.getAddress();
+
+  // A withdrawal fee can be obtained from LAYER TWO.
+  // TODO zksync failing.
+  const withdrawalFee = await provider.getWithdrawalFee('ETH', myAddress);
+
+  const withdrawal = new Withdrawal({
+    toAddress: myAddress,
+    amount: '0.1', // Desired amount to withdraw.
+    fee: withdrawalFee, // Desired fee to pay. This is a LAYER TWO fee.
+    tokenSymbol: 'ETH',
+  });
+
+  // Method under test. Perform WITHDRAW operation.
+  const result = await layer2Wallet.withdraw(withdrawal);
+
+  // The result object contains the necessary methods to obtain a receipt
+  // either Verified or non-verified. Verified takes long.
+  const receipt = await result.getReceipt();
+
+  // Expectations.
+  expect(receipt.operationType).toBe(OperationType.Withdrawal);
+  expect(receipt.to).toBe(myAddress);
+  expect(receipt.committed).toBeTruthy();
+});
+
+xtest('layer-2 to layer-2 TRANSFER', async () => {
+  // I am going to TRANSFER from my own address to another one.
+  const myAddress = layer2Wallet.getAddress();
+
+  // Sample destination address
+  const toAddress = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
+
+  // A transfer fee can be obtained from LAYER TWO. Use the destination
+  // address for the calculation.
+  // TODO zksync failing here.
+  const transferFee = await provider.getTransferFee('ETH', toAddress);
+
+  const transfer = new Transfer({
+    toAddress,
+    amount: '0.1', // Desired amount to withdraw.
+    fee: transferFee, // Desired fee to pay. This is a LAYER TWO fee.
+    tokenSymbol: 'ETH',
+  });
+
+  // Method under test. Perform WITHDRAW operation.
+  const result = await layer2Wallet.transfer(transfer);
+
+  // The result object contains the necessary methods to obtain a receipt
+  // either Verified or non-verified. Verified takes long.
+  const receipt = await result.getReceipt();
+
+  // Expectations.
+  expect(receipt.operationType).toBe(OperationType.Transfer);
+  expect(receipt.from).toBe(myAddress);
+  expect(receipt.to).toBe(toAddress);
+  expect(receipt.committed).toBeTruthy();
 });
 
 function getMockedSigner(): ethers.Signer {
@@ -124,7 +195,7 @@ function getMockedSigner(): ethers.Signer {
   );
 
   const DO_NOT_REVEAL_THESE_MNEMONICS = process.env.TEST_MNEMONICS;
-  expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy;
+  expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy();
 
   // Create ethereum wallet using ethers.js
   console.log('Create ethereum wallet using ethers.js');

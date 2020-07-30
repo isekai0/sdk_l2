@@ -59,6 +59,8 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
+    // TODO Why does NOT the import statement at the beginning work??
+    const ethers = require('ethers');
     // The result of depositToSyncFromEthereum is of a class "ETHOperation".
     // Such class is not exported. Need to use 'any' here.
     const zkSyncDeposit = await this.syncWallet.depositToSyncFromEthereum({
@@ -70,6 +72,9 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
   }
 
   async transfer(transfer: Transfer): Promise<Result> {
+    // TODO Why does NOT the import statement at the beginning work??
+    const ethers = require('ethers');
+
     const zkSyncTransfer = await this.syncWallet.syncTransfer({
       amount: ethers.utils.parseEther(transfer.amount),
       to: transfer.toAddress,
@@ -80,6 +85,9 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
   }
 
   async withdraw(withdrawal: Withdrawal): Promise<Result> {
+    // TODO Why does NOT the import statement at the beginning work??
+    const ethers = require('ethers');
+
     const zkSyncWithdrawal = await this.syncWallet.withdrawFromSyncToEthereum({
       amount: ethers.utils.parseEther(withdrawal.amount),
       ethAddress: withdrawal.toAddress,
