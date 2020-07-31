@@ -73,7 +73,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     // Get amount and fee.
     const amount = zksync.utils.closestPackableTransactionAmount(
-      ethers.utils.parseEther(transfer.fee)
+      ethers.utils.parseEther(transfer.amount)
     );
     const fee = zksync.utils.closestPackableTransactionFee(
       ethers.utils.parseEther(transfer.fee)
