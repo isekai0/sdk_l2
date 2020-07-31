@@ -10,6 +10,9 @@ import { Layer2Wallet } from '../src/Layer2Wallet';
 
 require('dotenv').config();
 
+// Define 2-minute timeout.
+jest.setTimeout(120_000);
+
 // Global variables to all tests.
 let layer2ProviderManager: StablePayLayer2Manager;
 let provider: StablePayLayer2Provider;
@@ -153,11 +156,8 @@ xtest('layer-2 withdraw back to address in layer-1', async () => {
 });
 
 xtest('layer-2 to layer-2 TRANSFER', async () => {
-  // I am going to TRANSFER from my own address to another one.
-  const myAddress = layer2Wallet.getAddress();
-
   // Sample destination address
-  const toAddress = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
+  const toAddress = '0x830baf0080766a88ff70f124f5016efd4af9c025';
 
   // A transfer fee can be obtained from LAYER TWO. Use the destination
   // address for the calculation.
@@ -180,7 +180,6 @@ xtest('layer-2 to layer-2 TRANSFER', async () => {
 
   // Expectations.
   expect(receipt.operationType).toBe(OperationType.Transfer);
-  expect(receipt.from).toBe(myAddress);
   expect(receipt.to).toBe(toAddress);
   expect(receipt.committed).toBeTruthy();
 });
