@@ -1,11 +1,5 @@
 import { ZkSyncResult } from './ZkSyncResult';
-import {
-  AccountBalanceState,
-  Layer2Type,
-  Receipt,
-  Result,
-  Network,
-} from '../types';
+import { AccountBalanceState, Result } from '../types';
 import { Deposit, Transfer, Withdrawal } from '../Operation';
 import { Layer2Wallet } from '../Layer2Wallet';
 import { AccountStream } from '../AccountStream';
@@ -13,7 +7,13 @@ import { AccountStream } from '../AccountStream';
 import { ethers } from 'ethers';
 
 export class ZkSyncLayer2Wallet implements Layer2Wallet {
-  constructor(private syncWallet: any /* TODO zksync.Wallet*/) {}
+  private isSigningWallet: boolean = false;
+
+  constructor(
+    private syncWallet: any /* TODO zksync.Wallet*/,
+    private ethersSigner: ethers.Signer,
+    private syncProvider: any /*TODO zksync.Provider*/
+  ) {}
 
   getAddress(): string {
     return this.syncWallet.address();
@@ -58,6 +58,10 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
+    // Check signing wallet upgrade.
+    if (!this.isSigningWallet) {
+      await this.upgradeToSigningWallet();
+    }
     // The result of depositToSyncFromEthereum is of a class "ETHOperation".
     // Such class is not exported. Need to use 'any' here.
     const zkSyncDeposit = await this.syncWallet.depositToSyncFromEthereum({
@@ -89,6 +93,10 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     let zkSyncTransfer: any;
     try {
+      // Check signing wallet upgrade.
+      if (!this.isSigningWallet) {
+        await this.upgradeToSigningWallet();
+      }
       // Perform TRANSFER operation.
       zkSyncTransfer = await this.syncWallet.syncTransfer(zkSyncOperationData);
     } catch (err) {
@@ -130,6 +138,10 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     let zkSyncWithdrawal: any;
     try {
+      // Check signing wallet upgrade.
+      if (!this.isSigningWallet) {
+        await this.upgradeToSigningWallet();
+      }
       // Perform WITHDRAW operation.
       zkSyncWithdrawal = await this.syncWallet.withdrawFromSyncToEthereum(
         zkSyncOperationData
@@ -175,5 +187,23 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     // Wait until the tx is committed.
     await changePubkey.awaitReceipt();
+  }
+
+  private async upgradeToSigningWallet() {
+    if (this.isSigningWallet) {
+      // Wallet already upgraded. Nothing to do.
+      return;
+    }
+
+    const zksync = await import('zksync');
+
+    // Upgrade wallet.
+    this.syncWallet = await zksync.Wallet.fromEthSigner(
+      this.ethersSigner,
+      this.syncProvider
+    );
+
+    // Declare this wallet as a signing-able one.
+    this.isSigningWallet = true;
   }
 }
