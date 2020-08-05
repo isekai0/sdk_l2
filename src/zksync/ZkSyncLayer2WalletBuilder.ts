@@ -28,9 +28,11 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
       );
 
       import('zksync').then((zksync) => {
-        zksync.Wallet.fromEthSigner(ethWallet, this.syncProvider)
+        zksync.Wallet.fromEthSignerNoKeys(ethWallet, this.syncProvider)
           .then((syncWallet: any /*TODO Wallet*/) => {
-            resolve(new ZkSyncLayer2Wallet(syncWallet));
+            resolve(
+              new ZkSyncLayer2Wallet(syncWallet, ethWallet, this.syncProvider)
+            );
           })
           .catch((err: any) => {
             reject(err);
@@ -64,9 +66,15 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
           // All initial validations done. Proceed to instantiate the zkSync
           // wallet.
           import('zksync').then((zksync) => {
-            zksync.Wallet.fromEthSigner(ethersSigner, this.syncProvider)
+            zksync.Wallet.fromEthSignerNoKeys(ethersSigner, this.syncProvider)
               .then((syncWallet: any /*zksync.Wallet*/) => {
-                resolve(new ZkSyncLayer2Wallet(syncWallet));
+                resolve(
+                  new ZkSyncLayer2Wallet(
+                    syncWallet,
+                    ethersSigner,
+                    this.syncProvider
+                  )
+                );
               })
               .catch((err) => {
                 reject(err);
