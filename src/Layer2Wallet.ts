@@ -64,7 +64,7 @@ export interface Layer2Wallet {
    *
    * @remarks
    * This method requires a flag to indicate if an approval of the allowance
-   * is necessary todeposit ERC20 tokens. Such a flag is specified in the
+   * is necessary to deposit ERC20 tokens. Such a flag is specified in the
    * _deposit_ parameter.
    *
    * @param deposit - Deposit operation data including target address,
@@ -77,7 +77,7 @@ export interface Layer2Wallet {
   deposit(deposit: Deposit): Promise<Result>;
 
   /**
-   * Make a trasnfer within layer 2 of the specified token in the transfer
+   * Make a transfer within layer 2 of the specified token in the transfer
    * data.
    *
    * @param transfer - Deposit operation data including target address,

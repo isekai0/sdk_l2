@@ -4,7 +4,7 @@ import { ZkSyncLayer2WalletBuilder } from './ZkSyncLayer2WalletBuilder';
 import { Layer2WalletBuilder } from 'Layer2WalletBuilder';
 
 export async function getZkSyncProvider(
-  network: Network
+  network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet'
 ): Promise<StablePayLayer2Provider> {
   return ZkSyncStablePayLayer2Provider.newInstance(network);
 }
@@ -24,7 +24,7 @@ class ZkSyncStablePayLayer2Provider implements StablePayLayer2Provider {
   }
 
   public static async newInstance(
-    network: Network
+    network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet'
   ): Promise<StablePayLayer2Provider> {
     // Asynchronously load zksync library.
     const zksync = await import('zksync');
@@ -57,7 +57,7 @@ class ZkSyncStablePayLayer2Provider implements StablePayLayer2Provider {
     const ret = new Set<string>();
 
     const tokenInfoDict = await this.syncProvider.getTokens();
-    for (const symbol in tokenInfoDict) {
+    for (const symbol of tokenInfoDict) {
       ret.add(symbol);
     }
 

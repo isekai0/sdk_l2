@@ -59,8 +59,10 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
         .then((etherNetwork) => {
           // Check that the signer's bound network is the same as this wallet
           // builder and layer-2 provider.
-          if (etherNetwork.name != this.network) {
-            reject('Ethers lib signer has the wrong network');
+          if (!this.sameNetwork(etherNetwork.name, this.network)) {
+            reject(
+              `Ethers lib signer has the wrong network ${etherNetwork.name} != ${this.network}`
+            );
           }
 
           // All initial validations done. Proceed to instantiate the zkSync
@@ -83,5 +85,13 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
         })
         .catch((err) => reject(err));
     });
+  }
+
+  private sameNetwork(a: string, b: string): boolean {
+    const mainnets = ['mainnet', 'homestead'];
+    if (mainnets.includes(a) && mainnets.includes(b)) {
+      return true;
+    }
+    return a === b;
   }
 }

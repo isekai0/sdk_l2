@@ -41,7 +41,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     const accountState = await this.syncWallet.getAccountState();
     const balanceDicts: [any, AccountBalanceState][] = [
       [accountState.verified, AccountBalanceState.Verified],
-      [accountState.committed, AccountBalanceState.Commited],
+      [accountState.committed, AccountBalanceState.Committed],
       [accountState.depositing, AccountBalanceState.Pending],
     ];
 
