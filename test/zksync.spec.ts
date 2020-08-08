@@ -1,6 +1,6 @@
 import * as zksync from 'zksync';
 import { ZkSyncResult } from '../src/zksync/ZkSyncResult';
-import { OperationType, Layer2Type } from '../src/types';
+import { Network, OperationType, Layer2Type } from '../src/types';
 import { Deposit, Withdrawal, Transfer } from '../src/Operation';
 import { StablePayLayer2Manager } from '../src/StablePayLayer2Manager';
 import { StablePayLayer2Provider } from '../src/StablePayLayer2Provider';
@@ -59,6 +59,8 @@ describe('Operation-related tests', () => {
 });
 
 describe('Wallet-related functionality testing', () => {
+  const network: Network = 'rinkeby';
+
   // Common setup.
   beforeAll(async () => {
     layer2ProviderManager = StablePayLayer2Manager.Instance;
@@ -66,14 +68,14 @@ describe('Wallet-related functionality testing', () => {
     // Obtain reference to the L2 provider.
     provider = await layer2ProviderManager.getProviderByLayer2Type(
       Layer2Type.ZK_SYNC,
-      'rinkeby'
+      network
     );
 
     // Obtain layer-2 wallet builder.
     layer2WalletBuilder = provider.getLayer2WalletBuilder();
 
     // Show how to obtain the ethers Signer.
-    ethersSigner = getMockedSigner();
+    ethersSigner = getMockedSigner(network);
 
     // Obtain the layer-2 wallet from provider-specific options.
     layer2Wallet = await layer2WalletBuilder.fromOptions({ ethersSigner });
@@ -89,8 +91,8 @@ describe('Wallet-related functionality testing', () => {
     expect(address).toBeTruthy();
 
     // Method under test.
-    const balance = await layer2Wallet.getBalance();
-    expect(balance).toBeTruthy();
+    const walletBalance = await layer2Wallet.getBalance();
+    expect(walletBalance).toBeTruthy();
 
     const walletBalances = await layer2Wallet.getAccountBalances();
     expect(walletBalances.length).toBeGreaterThan(0);
@@ -188,14 +190,11 @@ describe('Wallet-related functionality testing', () => {
 
 // Utility functions
 
-function getMockedSigner(): ethers.Signer {
+function getMockedSigner(network: Network): ethers.Signer {
   // TODO: See what's going on here.
   const ethers = require('ethers');
 
-  const ethersProvider = new ethers.getDefaultProvider(
-    'rinkeby',
-    'rinkebyKeyAPI'
-  );
+  const ethersProvider = new ethers.getDefaultProvider(network);
 
   const DO_NOT_REVEAL_THESE_MNEMONICS = process.env.TEST_MNEMONICS;
   expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy();

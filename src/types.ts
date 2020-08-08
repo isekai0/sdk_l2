@@ -1,4 +1,9 @@
-export type Network = 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet';
+export type Network =
+  | 'localhost'
+  | 'rinkeby'
+  | 'ropsten'
+  | 'homestead'
+  | 'mainnet';
 
 export enum Layer2Type {
   ZK_SYNC = 'ZK_SYNC',
@@ -7,7 +12,7 @@ export enum Layer2Type {
 
 export enum AccountBalanceState {
   Pending = 'pending',
-  Commited = 'commited',
+  Committed = 'committed',
   Verified = 'verified',
 }
 

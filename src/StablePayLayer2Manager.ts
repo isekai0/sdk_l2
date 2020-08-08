@@ -3,11 +3,11 @@ import { Layer2Type, Network } from './types';
 import { getZkSyncProvider } from './zksync/ZkSyncStablePayLayer2Provider';
 
 export class StablePayLayer2Manager {
-  private readonly providerInstaces: Map<string, StablePayLayer2Provider>;
+  private readonly providerInstances: Map<string, StablePayLayer2Provider>;
   public static readonly Instance = new StablePayLayer2Manager();
 
   private constructor() {
-    this.providerInstaces = new Map<string, StablePayLayer2Provider>();
+    this.providerInstances = new Map<string, StablePayLayer2Provider>();
   }
 
   /**
@@ -29,18 +29,24 @@ export class StablePayLayer2Manager {
     layer2Type: Layer2Type,
     network: Network
   ): Promise<StablePayLayer2Provider> {
+    // This is to add compatibility with the network label 'homestead' for
+    // mainnet which appears in the ether library.
+    if (network === 'homestead') {
+      network = 'mainnet';
+    }
+
+    // Create a key for layer 2 provider and network.
     const key = `${layer2Type}:${network}`;
     try {
       switch (layer2Type) {
         case Layer2Type.ZK_SYNC:
-          if (!this.providerInstaces.has(key)) {
+          if (!this.providerInstances.has(key)) {
             const newProvider = await getZkSyncProvider(network);
-            this.providerInstaces.set(key, newProvider);
+            this.providerInstances.set(key, newProvider);
           }
-          return this.providerInstaces.get(key)!;
+          return this.providerInstances.get(key)!;
       }
     } catch (err) {
-      console.log(err);
       throw new Error('Error encountered while creating provider instance');
     }
 
