@@ -57,7 +57,7 @@ class ZkSyncStablePayLayer2Provider implements StablePayLayer2Provider {
     const ret = new Set<string>();
 
     const tokenInfoDict = await this.syncProvider.getTokens();
-    for (const symbol of tokenInfoDict) {
+    for (const symbol in tokenInfoDict) {
       ret.add(symbol);
     }
 

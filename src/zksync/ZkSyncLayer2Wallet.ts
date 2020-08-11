@@ -178,15 +178,15 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     }
 
     // Proceed to unlock account.
-    if ((await this.syncWallet.getAccountId()) == undefined) {
-      throw new Error('Unknwon account');
+    if ((await this.syncWallet.getAccountId()) === undefined) {
+      throw new Error('Unknown account');
     }
 
     // Generate set signing key tx.
-    const changePubkey = await this.syncWallet.setSigningKey();
+    const changePubKey = await this.syncWallet.setSigningKey();
 
     // Wait until the tx is committed.
-    await changePubkey.awaitReceipt();
+    await changePubKey.awaitReceipt();
   }
 
   private async upgradeToSigningWallet() {
