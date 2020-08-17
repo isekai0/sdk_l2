@@ -67,4 +67,4 @@ export type TokenBalance = {
 
 export type AccountBalances = {
   [symbol: string]: TokenBalance;
-}
+};
