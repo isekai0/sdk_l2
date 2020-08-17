@@ -1,5 +1,5 @@
 import { AccountStream } from 'AccountStream';
-import { AccountBalanceState, Result } from './types';
+import { AccountBalanceState, Result, AccountBalances } from './types';
 import { Deposit, Transfer, Withdrawal } from 'Operation';
 
 export interface Layer2Wallet {
@@ -57,6 +57,14 @@ export interface Layer2Wallet {
    * @returns Promise of a collection of triples described previously.
    */
   getAccountBalances(): Promise<[string, string, AccountBalanceState][]>;
+
+  /**
+   * Gets a of type AccountBalances consisting of the token symbol, available
+   * balance and the balance's state (pending, commited, verified) keyed by Symbol.
+   *
+   * @returns Promise of an object with all wallet account balances keyed by Symbol.
+   */
+  getAccountTokenBalances(): Promise<AccountBalances>;
 
   /**
    * Make a deposit from layer 1 to layer 2 of the specified token in the
