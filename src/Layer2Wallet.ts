@@ -59,10 +59,10 @@ export interface Layer2Wallet {
   getAccountBalances(): Promise<[string, string, AccountBalanceState][]>;
 
   /**
-   * Gets a of type TokenBalance consisting of the token symbol, available
-   * balance and the balance's state (pending, commited, verified).
+   * Gets a of type AccountBalances consisting of the token symbol, available
+   * balance and the balance's state (pending, commited, verified) keyed by Symbol.
    *
-   * @returns Promise of a collection of TokenBalance types from a given wallet.
+   * @returns Promise of an object with all wallet account balances keyed by Symbol.
    */
   getAccountTokenBalances(): Promise<AccountBalances>;
 
