@@ -47,11 +47,8 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // mock setup
     zkSyncWallet.address.mockReturnValue(SAMPLE_ADDRESS);
-    zkSyncWallet.getBalance.mockReturnValue(
-      Promise.resolve(ETH_BALANCE),
-    );
+    zkSyncWallet.getBalance.mockReturnValue(Promise.resolve(ETH_BALANCE));
   });
-
 
   it('should get balance info from wallet', async () => {
     const address = await layer2Wallet.getAddress();
