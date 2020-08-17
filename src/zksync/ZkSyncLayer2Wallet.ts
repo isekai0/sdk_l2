@@ -1,18 +1,21 @@
+import { ethers } from 'ethers';
+import { Wallet as ZkSyncWallet, Provider as ZkSyncProvider } from 'zksync';
+
 import { ZkSyncResult } from './ZkSyncResult';
-import { AccountBalanceState, Result } from '../types';
+import { AccountBalanceState, Result, TokenBalance } from '../types';
 import { Deposit, Transfer, Withdrawal } from '../Operation';
 import { Layer2Wallet } from '../Layer2Wallet';
 import { AccountStream } from '../AccountStream';
 
-import { ethers } from 'ethers';
+
 
 export class ZkSyncLayer2Wallet implements Layer2Wallet {
   private isSigningWallet: boolean = false;
 
   constructor(
-    private syncWallet: any /* TODO zksync.Wallet*/,
+    private syncWallet: ZkSyncWallet,
     private ethersSigner: ethers.Signer,
-    private syncProvider: any /*TODO zksync.Provider*/
+    private syncProvider: ZkSyncProvider
   ) {}
 
   getAddress(): string {
@@ -35,6 +38,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     ).toString();
   }
 
+  // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl
   async getAccountBalances(): Promise<[string, string, AccountBalanceState][]> {
     const ret: [string, string, AccountBalanceState][] = [];
 
@@ -52,6 +56,30 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
           accountState.verified.balances[tokenSymbol].toString(),
           balanceState,
         ]);
+      }
+    }
+    return ret;
+  }
+
+  async getAccountTokenBalances(): Promise<TokenBalance[]> {
+    const ret: TokenBalance[] = [];
+
+    const accountState = await this.syncWallet.getAccountState();
+    const balanceDicts: [any, AccountBalanceState][] = [
+      [accountState.verified, AccountBalanceState.Verified],
+      [accountState.committed, AccountBalanceState.Committed],
+      [accountState.depositing, AccountBalanceState.Pending],
+    ];
+
+    for (const [balanceDict, balanceState] of balanceDicts) {
+      for (const tokenSymbol in balanceDict.balances) {
+        if (balanceDict.balances.hasOwnProperty(tokenSymbol)) {
+          ret.push({
+            symbol: tokenSymbol,
+            balance: accountState.verified.balances[tokenSymbol].toString(),
+            state: balanceState,
+          });
+        }
       }
     }
     return ret;

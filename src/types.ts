@@ -58,3 +58,9 @@ export interface Result {
   getReceipt(): Promise<Receipt>;
   getReceiptVerify(): Promise<Receipt>;
 }
+
+export type TokenBalance = {
+  symbol: string;
+  balance: string;
+  state: string;
+}

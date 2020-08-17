@@ -1,9 +1,10 @@
+import { Wallet as ZkSyncWallet, Provider as ZkSyncProvider } from 'zksync';
 import { Layer2WalletBuilder } from '../Layer2WalletBuilder';
 import { Layer2Wallet } from '../Layer2Wallet';
 import { Network } from '../types';
 import { ZkSyncLayer2Wallet } from './ZkSyncLayer2Wallet';
 
-// TODO import { Provider, Wallet } from 'zksync';
+
 
 // const
 import ethers from 'ethers';
@@ -11,7 +12,7 @@ import ethers from 'ethers';
 export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
     private network: Network,
-    private syncProvider: any /*TODO zksync.Provider*/
+    private syncProvider: ZkSyncProvider
   ) {}
 
   fromMnemonic(words: string): Promise<Layer2Wallet> {
@@ -29,7 +30,7 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
 
       import('zksync').then((zksync) => {
         zksync.Wallet.fromEthSignerNoKeys(ethWallet, this.syncProvider)
-          .then((syncWallet: any /*TODO Wallet*/) => {
+          .then((syncWallet: ZkSyncWallet) => {
             resolve(
               new ZkSyncLayer2Wallet(syncWallet, ethWallet, this.syncProvider)
             );
@@ -69,7 +70,7 @@ export class ZkSyncLayer2WalletBuilder implements Layer2WalletBuilder {
           // wallet.
           import('zksync').then((zksync) => {
             zksync.Wallet.fromEthSignerNoKeys(ethersSigner, this.syncProvider)
-              .then((syncWallet: any /*zksync.Wallet*/) => {
+              .then((syncWallet: ZkSyncWallet) => {
                 resolve(
                   new ZkSyncLayer2Wallet(
                     syncWallet,
