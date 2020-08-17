@@ -1,5 +1,5 @@
 import { AccountStream } from 'AccountStream';
-import { AccountBalanceState, Result, TokenBalance } from './types';
+import { AccountBalanceState, Result, AccountBalances } from './types';
 import { Deposit, Transfer, Withdrawal } from 'Operation';
 
 export interface Layer2Wallet {
@@ -59,12 +59,12 @@ export interface Layer2Wallet {
   getAccountBalances(): Promise<[string, string, AccountBalanceState][]>;
 
   /**
-   * Gets a collection of type TokenBalance consisting of the token symbol, available
+   * Gets a of type TokenBalance consisting of the token symbol, available
    * balance and the balance's state (pending, commited, verified).
    *
    * @returns Promise of a collection of TokenBalance types from a given wallet.
    */
-  getAccountTokenBalances(): Promise<TokenBalance[]>;
+  getAccountTokenBalances(): Promise<AccountBalances>;
 
   /**
    * Make a deposit from layer 1 to layer 2 of the specified token in the

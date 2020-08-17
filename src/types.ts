@@ -64,3 +64,7 @@ export type TokenBalance = {
   balance: string;
   state: string;
 };
+
+export type AccountBalances = {
+  [symbol: string]: TokenBalance;
+}
