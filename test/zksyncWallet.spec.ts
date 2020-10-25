@@ -2,8 +2,8 @@ import { mockDeep, MockProxy } from 'jest-mock-extended';
 import { Wallet as ZkSyncWallet, Provider as ZkSyncProvider } from 'zksync';
 import { ethers, BigNumber } from 'ethers';
 
-import { OperationType } from '../src/types';
-import { Withdrawal, Transfer } from '../src/Operation';
+import { Network, OperationType } from '../src/types';
+import { Withdrawal, Transfer, Deposit } from '../src/Operation';
 import { Layer2Wallet } from '../src/Layer2Wallet';
 import { ZkSyncLayer2Wallet } from '../src/zksync/ZkSyncLayer2Wallet';
 
@@ -15,6 +15,7 @@ jest.setTimeout(120_000);
 // Global variables to all tests.
 const SAMPLE_ADDRESS = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
 const ETH_BALANCE = BigNumber.from('100000000000000000');
+const SAMPLE_NETWORK: Network = 'ropsten';
 
 let ethersSigner: MockProxy<ethers.Signer> & ethers.Signer;
 let zkSyncWallet: MockProxy<ZkSyncWallet> & ZkSyncWallet;
@@ -30,14 +31,17 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Obtain the layer-2 wallet from provider-specific options.
     layer2Wallet = new ZkSyncLayer2Wallet(
+      SAMPLE_NETWORK,
       zkSyncWallet,
       ethersSigner,
       zkSyncProvider
     );
 
-    // mock setup
+    // Mock setup.
     zkSyncWallet.address.mockReturnValue(SAMPLE_ADDRESS);
     zkSyncWallet.getBalance.mockReturnValue(Promise.resolve(ETH_BALANCE));
+    // Fake upgrade to signing wallet method.
+    (layer2Wallet as any).upgradeToSigningWallet = () => Promise.resolve();
   });
 
   it('should get balance info from wallet', async () => {
@@ -50,6 +54,29 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Expectations.
     expect(walletBalance).toBe(ETH_BALANCE.toString());
+  });
+
+  it('Should pass correct parameters for DEPOSIT operation', async () => {
+    // Test setup.
+    // Create DEPOSIT operation.
+    const fakeDeposit = Deposit.createTokenDeposit({
+      toAddress: SAMPLE_ADDRESS,
+      amount: '666.777',
+      fee: '0.01',
+      tokenSymbol: 'BAT',
+      approveForErc20: true,
+    });
+
+    // Method under test.
+    await layer2Wallet.deposit(fakeDeposit);
+
+    // Expectations.
+    expect(zkSyncWallet.depositToSyncFromEthereum).toHaveBeenCalledWith({
+      depositTo: fakeDeposit.toAddress,
+      token: fakeDeposit.tokenSymbol,
+      amount: ethers.utils.parseEther(fakeDeposit.amount),
+      approveDepositAmountForERC20: fakeDeposit.approveForErc20,
+    });
   });
 
   it('should unlock account if locked on Transfer txn', async () => {
