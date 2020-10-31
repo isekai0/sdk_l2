@@ -1,4 +1,4 @@
-@startuml covid sos datamodel
+@startuml sdk l2
 
 enum Layer2Type {
   ZK_SYNC = 'ZK_SYNC'
@@ -12,16 +12,17 @@ enum OperationType {
 }
 
 class Operation {
+  type: OperationType
   toAddress: string
   amount: string
   fee: string
+  tokenSymbol: string
 }
 
 class Deposit {
 }
 Operation <|-- Deposit
 class TokenDeposit {
-  tokenSymbol: string
   approveForErc20: bool
 }
 Deposit <|-- TokenDeposit
@@ -30,7 +31,6 @@ class Transfer {
 }
 Operation <|-- Transfer
 class TokenTransfer {
-  tokenSymbol: string
 }
 Transfer <|-- TokenTransfer
 
@@ -38,10 +38,28 @@ class Withdrawal {
 }
 Operation <|-- Withdrawal
 class TokenWithdrawal {
-  tokenSymbol: string
 }
 Withdrawal <|-- TokenWithdrawal
 
+class Result {
+  async getReceipt(): Receipt
+  async getReceiptVerify(): Receipt
+}
+
+class Receipt {
+  operationType: OperationType
+  from?: string
+  to: string
+  tokenSymbol: string
+  amount: string
+  fee: string
+  blockNumber?: number
+  hash?: string
+  createdAt?: string
+  failReason?: string
+  committed?: boolean
+  verified?: boolean
+}
 
 interface Layer2Manager {
   getBalance(layer2Type: Layer2Type, tokenSymbol: string): string
@@ -54,40 +72,57 @@ interface Layer2Manager {
 }
 
 interface Layer2Provider {
-  constructor(wallet: Wallet)
-
   + getName(): string
   + getDescription(): string
-  + getWallet(): Wallet
-  + getBalance(tokenSymbol: string): string
-  + getBalanceVerified(tokenSymbol: string): string
+
+  + getNetwork(): Network;
+
   + getSupportedLayer2Type(): Layer2Type
   + getSupportedTokens(): Set<string>
+  + getLayer2WalletBuilder(): Layer2WalletBuilder
 
-  + performDeposit(deposit: Deposit): DepositResult
-  + performTransfer(transfer: Transfer): TransferResult
-  + performWithdrawal(withdrawal: Withdrawal): WithdrawalResult
+  + getWithdrawalFee(toAddress: string, tokenSymbol: string): string
+  + getTransferFee(toAddress: string, tokenSymbol: string): string
+
+  + getReceipt(txHash: string): Receipt;
+  + getAccountHistory(address: string): Receipt;
+
+  + disconnect(): void;
 }
 
-class OperationResult {
-  async getReceipt(): Receipt
-  async getReceiptVerify(): Receipt
+Layer2Manager "1" - "1..*" Layer2Provider
+
+interface Layer2WalletBuilder {
+  + getNetwork(): Network;
+
+  + fromMnemonic(words: string): Layer2Wallet;
+  + fromOptions(options: object): Layer2Wallet;
 }
 
-class DepositResult {
-}
-OperationResult <|-- DepositResult
+Layer2Provider "1" - "1" Layer2WalletBuilder
 
-class TransferResult {
-}
-OperationResult <|-- TransferResult
+interface Layer2Wallet {
+  + getNetwork(): Network;
 
-class WithdrawalResult {
-}
-OperationResult <|-- WithdrawalResult
+  + getAddress(): string;
 
-class Receipt() {
-  isVerified(): boolean
+  + getBalance(): string;
+  + getBalanceVerified(): string;
+  + getTokenBalance(tokenSymbol: string): string;
+  + getTokenBalanceVerified(tokenSymbol: string): string;
+  + getAccountBalances(): [string, string, AccountBalanceState][];
+  + getAccountTokenBalances(): AccountBalances;
+
+  + deposit(deposit: Deposit): Result;
+
+  + transfer(transfer: Transfer): Result;
+
+  + withdraw(withdrawal: Withdrawal): Result;
+
+  + getAccountStream(): AccountStream;
 }
+
+Layer2WalletBuilder "1" - "0..*" Layer2Wallet
+
 
 @enduml

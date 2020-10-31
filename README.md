@@ -51,6 +51,10 @@ async printMyTokenBalance(tokenSymbol: string) {
 }
 ```
 
+## General API design diagram
+
+![sdk-l2 design](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://github.com/StablePay/sdk_l2/raw/master/docs/design.puml "StablePay SDK L2")
+
 ## Running unit tests
 
 To run unit tests, within the project's root directory, just run
