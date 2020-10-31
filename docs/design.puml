@@ -22,28 +22,18 @@ class Operation {
 class Deposit {
 }
 Operation <|-- Deposit
-class TokenDeposit {
-  approveForErc20: bool
-}
-Deposit <|-- TokenDeposit
 
 class Transfer {
 }
 Operation <|-- Transfer
-class TokenTransfer {
-}
-Transfer <|-- TokenTransfer
 
 class Withdrawal {
 }
 Operation <|-- Withdrawal
-class TokenWithdrawal {
-}
-Withdrawal <|-- TokenWithdrawal
 
 class Result {
-  async getReceipt(): Receipt
-  async getReceiptVerify(): Receipt
+  getReceipt(): Receipt
+  getReceiptVerify(): Receipt
 }
 
 class Receipt {
@@ -90,16 +80,12 @@ interface Layer2Provider {
   + disconnect(): void;
 }
 
-Layer2Manager "1" - "1..*" Layer2Provider
-
 interface Layer2WalletBuilder {
   + getNetwork(): Network;
 
   + fromMnemonic(words: string): Layer2Wallet;
   + fromOptions(options: object): Layer2Wallet;
 }
-
-Layer2Provider "1" - "1" Layer2WalletBuilder
 
 interface Layer2Wallet {
   + getNetwork(): Network;
@@ -121,8 +107,5 @@ interface Layer2Wallet {
 
   + getAccountStream(): AccountStream;
 }
-
-Layer2WalletBuilder "1" - "0..*" Layer2Wallet
-
 
 @enduml
