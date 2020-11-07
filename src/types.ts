@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-export type  BigNumberish = BigNumber | string
+export type BigNumberish = BigNumber | string;
 
 export type Network =
   | 'localhost'
@@ -70,4 +70,3 @@ export type TokenBalance = {
 export type AccountBalances = {
   [symbol: string]: TokenBalance;
 };
-

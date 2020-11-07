@@ -1,7 +1,12 @@
 import { AccountStream } from 'AccountStream';
-import { AccountBalanceState, Result, AccountBalances, Network, BigNumberish } from './types';
+import {
+  AccountBalanceState,
+  Result,
+  AccountBalances,
+  Network,
+  BigNumberish,
+} from './types';
 import { Deposit, Transfer, Withdrawal } from 'Operation';
-
 
 export interface Layer2Wallet {
   /**
