@@ -1,3 +1,7 @@
+import { BigNumber } from 'ethers';
+
+export type  BigNumberish = BigNumber | string
+
 export type Network =
   | 'localhost'
   | 'rinkeby'
@@ -59,10 +63,11 @@ export interface Result {
 
 export type TokenBalance = {
   symbol: string;
-  balance: string;
+  balance: BigNumberish;
   state: string;
 };
 
 export type AccountBalances = {
   [symbol: string]: TokenBalance;
 };
+

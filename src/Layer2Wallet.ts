@@ -1,6 +1,7 @@
 import { AccountStream } from 'AccountStream';
-import { AccountBalanceState, Result, AccountBalances, Network } from './types';
+import { AccountBalanceState, Result, AccountBalances, Network, BigNumberish } from './types';
 import { Deposit, Transfer, Withdrawal } from 'Operation';
+
 
 export interface Layer2Wallet {
   /**
@@ -25,7 +26,7 @@ export interface Layer2Wallet {
    *
    * @beta
    */
-  getBalance(): Promise<string>;
+  getBalance(): Promise<BigNumberish>;
 
   /**
    * Get the **verified** ETH balance in the layer-2 network.
@@ -34,7 +35,7 @@ export interface Layer2Wallet {
    *
    * @beta
    */
-  getBalanceVerified(): Promise<string>;
+  getBalanceVerified(): Promise<BigNumberish>;
 
   /**
    * Get the balance of the specified token in the layer-2 network. Use 'ETH'
@@ -45,7 +46,7 @@ export interface Layer2Wallet {
    *
    * @beta
    */
-  getTokenBalance(tokenSymbol: string): Promise<string>;
+  getTokenBalance(tokenSymbol: string): Promise<BigNumberish>;
 
   /**
    * Get the **verified** balance of the specified token in the layer-2
@@ -56,7 +57,7 @@ export interface Layer2Wallet {
    *
    * @beta
    */
-  getTokenBalanceVerified(tokenSymbol: string): Promise<string>;
+  getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish>;
 
   /**
    * Get a collection of a triples consisting of the token symbol, available
