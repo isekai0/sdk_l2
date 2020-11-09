@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, BigNumber } from 'ethers';
 import { Wallet as ZkSyncWallet, Provider as ZkSyncProvider } from 'zksync';
 
 import { ZkSyncResult } from './ZkSyncResult';
@@ -7,6 +7,7 @@ import {
   Result,
   AccountBalances,
   Network,
+  BigNumberish
 } from '../types';
 import { Deposit, Transfer, Withdrawal, Operation } from '../Operation';
 import { Layer2Wallet } from '../Layer2Wallet';
@@ -30,20 +31,18 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     return this.syncWallet.address();
   }
 
-  async getBalance(): Promise<string> {
-    return (await this.syncWallet.getBalance('ETH')).toString();
+  async getBalance(): Promise<BigNumberish> {
+    return this.syncWallet.getBalance('ETH');
   }
-  async getBalanceVerified(): Promise<string> {
-    return (await this.syncWallet.getBalance('ETH', 'verified')).toString();
+  async getBalanceVerified(): Promise<BigNumberish> {
+    return this.syncWallet.getBalance('ETH', 'verified');
   }
 
-  async getTokenBalance(tokenSymbol: string): Promise<string> {
-    return (await this.syncWallet.getBalance(tokenSymbol)).toString();
+  async getTokenBalance(tokenSymbol: string): Promise<BigNumberish> {
+    return this.syncWallet.getBalance(tokenSymbol);
   }
-  async getTokenBalanceVerified(tokenSymbol: string): Promise<string> {
-    return (
-      await this.syncWallet.getBalance(tokenSymbol, 'verified')
-    ).toString();
+  async getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish> {
+    return  this.syncWallet.getBalance(tokenSymbol, 'verified');
   }
 
   // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl
@@ -84,7 +83,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
         if (balanceDict.balances.hasOwnProperty(tokenSymbol)) {
           ret[tokenSymbol] = {
             symbol: tokenSymbol,
-            balance: accountState.verified.balances[tokenSymbol].toString(),
+            balance: BigNumber.from(accountState.verified.balances[tokenSymbol]),
             state: balanceState,
           };
         }

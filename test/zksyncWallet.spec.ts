@@ -53,7 +53,8 @@ describe('zkSync Wallet-related functionality testing', () => {
     const walletBalance = await layer2Wallet.getBalance();
 
     // Expectations.
-    expect(walletBalance).toBe(ETH_BALANCE.toString());
+    expect(walletBalance).toBe(ETH_BALANCE);
+    expect(walletBalance.toString()).toBe(ETH_BALANCE.toString());
   });
 
   it('Should pass correct parameters for DEPOSIT operation', async () => {
