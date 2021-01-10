@@ -70,3 +70,7 @@ export type TokenBalance = {
 export type AccountBalances = {
   [symbol: string]: TokenBalance;
 };
+
+export interface AccountStream {
+  onEvent(event: string, cb: (receipt: Receipt) => void): void;
+}

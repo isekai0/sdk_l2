@@ -1,27 +1,35 @@
 import { ethers, BigNumber } from 'ethers';
+import { EventEmitter } from 'events';
 import { Wallet as ZkSyncWallet, Provider as ZkSyncProvider } from 'zksync';
 
 import { ZkSyncResult } from './ZkSyncResult';
+
+import { Deposit, Transfer, Withdrawal, Operation } from '../Operation';
+import { Layer2Wallet } from '../Layer2Wallet';
+import AccountStream from '../AccountStream';
+
+// TYPES
 import {
   AccountBalanceState,
   Result,
   AccountBalances,
   Network,
-  BigNumberish
+  BigNumberish,
 } from '../types';
-import { Deposit, Transfer, Withdrawal, Operation } from '../Operation';
-import { Layer2Wallet } from '../Layer2Wallet';
-import { AccountStream } from '../AccountStream';
+
 
 export class ZkSyncLayer2Wallet implements Layer2Wallet {
   private isSigningWallet: boolean = false;
+  private accountStream: AccountStream;
 
   constructor(
     private network: Network,
     private syncWallet: ZkSyncWallet,
     private ethersSigner: ethers.Signer,
     private syncProvider: ZkSyncProvider
-  ) {}
+  ) {
+    this.accountStream = new AccountStream(this);
+  }
 
   getNetwork(): Network {
     return this.network;
@@ -163,8 +171,13 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     return this.doOperation(operationFn, withdrawal);
   }
 
-  getAccountStream(): AccountStream {
-    throw new Error('Method not implemented.');
+  async getAccountEvents(): Promise<EventEmitter> {
+    if (!this.accountStream.active) {
+      // init cache
+      await this.accountStream.start();
+    }
+   
+    return this.accountStream.getAccountEvents();
   }
 
   private async doOperation(operationFn: () => {}, operation: Operation) {
