@@ -1,4 +1,4 @@
-import { AccountStream } from 'AccountStream';
+import { EventEmitter } from 'events';
 import {
   AccountBalanceState,
   Result,
@@ -122,5 +122,5 @@ export interface Layer2Wallet {
    */
   withdraw(withdrawal: Withdrawal): Promise<Result>;
 
-  getAccountStream(): AccountStream;
+  getAccountEvents(): Promise<EventEmitter>;
 }
