@@ -3,7 +3,6 @@ import { Layer2Wallet } from 'Layer2Wallet';
 import { EventEmitter } from 'events';
 import { AccountBalances } from '../src/types';
 
-
 export default class AccountStream {
   public active: boolean = false;
   private emitter: EventEmitter;
@@ -25,12 +24,12 @@ export default class AccountStream {
 
   // TODO: add retry count and timeout
   private async _poll() {
-    await new Promise(resolve => setTimeout(resolve, this.delay));
+    await new Promise((resolve) => setTimeout(resolve, this.delay));
 
     // check if balance change
     try {
       const balances = await this.wallet.getAccountTokenBalances();
-     
+
       if (balances) {
         // get hash of balances object
         const latestHash = this._hashBalances(balances);
@@ -44,7 +43,7 @@ export default class AccountStream {
       }
     } catch (e) {
       console.error(`Error on polling balances: `, e);
-    }    
+    }
 
     // else sleep
 
@@ -57,7 +56,7 @@ export default class AccountStream {
     if (!this.active) {
       return;
     }
-   
+
     this.emitter.emit('balanceUpdate', newBalance);
 
     return true;

@@ -25,19 +25,17 @@ const getInitBalance = () => {
     ETH: {
       symbol: 'ETH',
       balance: BigNumber.from('2000000000000000000'), // 2 ether
-      state: 'pending'
+      state: 'pending',
     },
     DAI: {
       symbol: 'DAI',
       balance: BigNumber.from('4000000000000000000'), // 4 dai
-      state: 'pending'
-    }
-  }
+      state: 'pending',
+    },
+  };
 
   return INIT_BALANCE;
-}
-
-
+};
 
 describe('AccountStream testing', () => {
   // Common setup.
@@ -47,11 +45,13 @@ describe('AccountStream testing', () => {
     accountStream = new AccountStream(layer2Wallet);
 
     mockAccountBalances = getInitBalance();
-   
+
     // Mock setup.
     // Fake upgrade to signing wallet method.
     (layer2Wallet as any).upgradeToSigningWallet = () => Promise.resolve();
-    layer2Wallet.getAccountTokenBalances.mockReturnValue(Promise.resolve(mockAccountBalances));
+    layer2Wallet.getAccountTokenBalances.mockReturnValue(
+      Promise.resolve(mockAccountBalances)
+    );
   });
 
   it('should emit event on balance update', async () => {
@@ -61,17 +61,17 @@ describe('AccountStream testing', () => {
 
     // Method under test.
     await accountStream.start();
-    
+
     emitter.on('balanceUpdate', (event) => {
-        console.log(`got event ${JSON.stringify(event)}`);
-        // Expectations.
-        expect(event).toBeDefined();
-        expect(event).toBe(mockAccountBalances);
+      console.log(`got event ${JSON.stringify(event)}`);
+      // Expectations.
+      expect(event).toBeDefined();
+      expect(event).toBe(mockAccountBalances);
     });
     // simulate received some either and balance changed
     mockAccountBalances.ETH.balance = BigNumber.from('4000000000000000000');
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     accountStream.stop();
   });
@@ -82,15 +82,14 @@ describe('AccountStream testing', () => {
 
     // Method under test.
     await accountStream.start();
-    
+
     emitter.on('balanceUpdate', (event) => {
-        console.log(`got event ${JSON.stringify(event)}`);
-        fail(new Error('should not reach here'));
+      console.log(`got event ${JSON.stringify(event)}`);
+      fail(new Error('should not reach here'));
     });
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     accountStream.stop();
   });
-
 });

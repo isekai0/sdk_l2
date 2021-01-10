@@ -74,4 +74,3 @@ export type AccountBalances = {
 export interface AccountStream {
   onEvent(event: string, cb: (receipt: Receipt) => void): void;
 }
-
