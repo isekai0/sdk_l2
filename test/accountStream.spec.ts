@@ -23,14 +23,10 @@ let mockAccountBalances: AccountBalances;
 const getInitBalance = () => {
   const INIT_BALANCE: AccountBalances = {
     ETH: {
-      symbol: 'ETH',
-      balance: BigNumber.from('2000000000000000000'), // 2 ether
-      state: 'pending',
+      pending: BigNumber.from('2000000000000000000'), // 2 ether
     },
     DAI: {
-      symbol: 'DAI',
-      balance: BigNumber.from('4000000000000000000'), // 4 dai
-      state: 'pending',
+      pending: BigNumber.from('4000000000000000000'), // 4 dai
     },
   };
 
@@ -69,7 +65,7 @@ describe('AccountStream testing', () => {
       expect(event).toBe(mockAccountBalances);
     });
     // simulate received some either and balance changed
-    mockAccountBalances.ETH.balance = BigNumber.from('4000000000000000000');
+    mockAccountBalances.ETH.pending = BigNumber.from('4000000000000000000');
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
