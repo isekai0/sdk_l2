@@ -17,7 +17,6 @@ import {
   BigNumberish,
 } from '../types';
 
-
 export class ZkSyncLayer2Wallet implements Layer2Wallet {
   private isSigningWallet: boolean = false;
   private accountStream: AccountStream;
@@ -50,7 +49,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     return this.syncWallet.getBalance(tokenSymbol);
   }
   async getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish> {
-    return  this.syncWallet.getBalance(tokenSymbol, 'verified');
+    return this.syncWallet.getBalance(tokenSymbol, 'verified');
   }
 
   // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl
@@ -79,25 +78,35 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
   async getAccountTokenBalances(): Promise<AccountBalances> {
     const ret: AccountBalances = {};
 
-    const accountState = await this.syncWallet.getAccountState();
-    const balanceDicts: [any, AccountBalanceState][] = [
-      [accountState.verified, AccountBalanceState.Verified],
-      [accountState.committed, AccountBalanceState.Committed],
-      [accountState.depositing, AccountBalanceState.Pending],
-    ];
+    const {
+      depositing,
+      verified,
+      committed,
+    } = await this.syncWallet.getAccountState();
 
-    for (const [balanceDict, balanceState] of balanceDicts) {
-      for (const tokenSymbol in balanceDict.balances) {
-        if (balanceDict.balances.hasOwnProperty(tokenSymbol)) {
-          ret[tokenSymbol] = {
-            symbol: tokenSymbol,
-            balance: BigNumber.from(accountState.verified.balances[tokenSymbol]),
-            state: balanceState,
-          };
-        }
-      }
-    }
-    return ret;
+    const tokens = Object.keys(depositing.balances).concat(
+      Object.keys(verified.balances),
+      Object.keys(committed.balances)
+    );
+
+    const accountBalances = tokens.reduce((balances, token) => {
+      return {
+        ...balances,
+        [token]: {
+          [AccountBalanceState.Pending]: BigNumber.from(
+            depositing.balances[token]?.amount
+          ),
+          [AccountBalanceState.Verified]: BigNumber.from(
+            verified.balances[token]
+          ),
+          [AccountBalanceState.Committed]: BigNumber.from(
+            committed.balances[token]
+          ),
+        },
+      };
+    }, {});
+
+    return accountBalances;
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
@@ -176,7 +185,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
       // init cache
       await this.accountStream.start();
     }
-   
+
     return this.accountStream.getAccountEvents();
   }
 

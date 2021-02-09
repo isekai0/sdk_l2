@@ -62,9 +62,7 @@ export interface Result {
 }
 
 export type TokenBalance = {
-  symbol: string;
-  balance: BigNumberish;
-  state: string;
+  [state: string]: BigNumberish;
 };
 
 export type AccountBalances = {
