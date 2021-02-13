@@ -94,13 +94,13 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
         ...balances,
         [token]: {
           [AccountBalanceState.Pending]: BigNumber.from(
-            depositing.balances[token]?.amount
+            depositing.balances[token]?.amount ?? 0
           ),
           [AccountBalanceState.Verified]: BigNumber.from(
-            verified.balances[token]
+            verified.balances[token] ?? 0
           ),
           [AccountBalanceState.Committed]: BigNumber.from(
-            committed.balances[token]
+            committed.balances[token] ?? 0
           ),
         },
       };
