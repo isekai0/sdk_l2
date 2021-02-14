@@ -158,7 +158,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     const zksync = await import('zksync');
 
     // Adjust transaction amount.
-    const amount = ethers.utils.parseEther(withdrawal.fee);
+    const amount = ethers.utils.parseEther(withdrawal.amount);
 
     // Adjust fee amount.
     const fee = zksync.utils.closestPackableTransactionFee(
