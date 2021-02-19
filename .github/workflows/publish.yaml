@@ -1,0 +1,34 @@
+name: PUBLISH
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Publish to NPM
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '10.18.1'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Evaluate package versions
+        id: will_publish
+        run: |
+          result=$(node ./.github/willPublish.js)
+          echo "::set-output name=RESULT::$result"
+      - name: Installing dependencies
+        run: yarn install
+      - name: Building project
+        run: yarn build
+      - name: Running tests
+        run: yarn test
+      - name: Publish to NPM
+        if: ${{ endsWith(steps.will_publish.outputs.RESULT, '!!_DO_PUBLISH_!!') }}
+        run: |
+          npm config set scripts-prepend-node-path auto
+          yarn publish --non-interactive
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}

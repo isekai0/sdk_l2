@@ -4,12 +4,14 @@ on: [pull_request]
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-node@v1
         with:
           node-version: '10.18.1'
+      - name: Check local/remote pkg versions
+        run: node ./.github/willPublish.js
       - name: Installing dependencies
         run: yarn install
       - name: Building project
