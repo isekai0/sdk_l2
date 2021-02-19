@@ -14,17 +14,17 @@ jobs:
         with:
           node-version: '10.18.1'
           registry-url: 'https://registry.npmjs.org'
+      - name: Evaluate package versions
+        id: will_publish
+        run: |
+          result=$(node ./.github/willPublish.js)
+          echo "::set-output name=RESULT::$result"
       - name: Installing dependencies
         run: yarn install
       - name: Building project
         run: yarn build
       - name: Running tests
         run: yarn test
-      - name: Evaluate package versions
-        id: will_publish
-        run: |
-          result=$(node ./.github/willPublish.js)
-          echo "::set-output name=RESULT::$result"
       - name: Publish to NPM
         if: ${{ endsWith(steps.will_publish.outputs.RESULT, '!!_DO_PUBLISH_!!') }}
         run: |

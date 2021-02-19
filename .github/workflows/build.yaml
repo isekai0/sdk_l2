@@ -10,6 +10,8 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: '10.18.1'
+      - name: Check local/remote pkg versions
+        run: node ./.github/willPublish.js
       - name: Installing dependencies
         run: yarn install
       - name: Building project
