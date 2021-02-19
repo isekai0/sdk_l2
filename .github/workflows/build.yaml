@@ -2,7 +2,7 @@ name: BUILD SDK
 on: [pull_request]
 
 jobs:
-  deploy:
+  build:
     name: Build
     runs-on: ubuntu-18.04
     steps:
