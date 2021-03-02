@@ -40,6 +40,7 @@ describe('zkSync Wallet-related functionality testing', () => {
     // Mock setup.
     zkSyncWallet.address.mockReturnValue(SAMPLE_ADDRESS);
     zkSyncWallet.getBalance.mockReturnValue(Promise.resolve(ETH_BALANCE));
+    zkSyncProvider.tokenSet.parseToken.mockReturnValue(ETH_BALANCE);
     // Fake upgrade to signing wallet method.
     (layer2Wallet as any).upgradeToSigningWallet = () => Promise.resolve();
   });
@@ -75,7 +76,10 @@ describe('zkSync Wallet-related functionality testing', () => {
     expect(zkSyncWallet.depositToSyncFromEthereum).toHaveBeenCalledWith({
       depositTo: fakeDeposit.toAddress,
       token: fakeDeposit.tokenSymbol,
-      amount: ethers.utils.parseEther(fakeDeposit.amount),
+      amount: zkSyncProvider.tokenSet.parseToken(
+        fakeDeposit.tokenSymbol,
+        fakeDeposit.amount
+      ),
       approveDepositAmountForERC20: fakeDeposit.approveForErc20,
     });
   });

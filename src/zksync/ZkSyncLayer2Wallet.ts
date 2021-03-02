@@ -119,7 +119,10 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     const zkSyncDeposit = await this.syncWallet.depositToSyncFromEthereum({
       depositTo: this.syncWallet.address(),
       token: deposit.tokenSymbol,
-      amount: ethers.utils.parseEther(deposit.amount),
+      amount: this.syncProvider.tokenSet.parseToken(
+        deposit.tokenSymbol,
+        deposit.amount
+      ),
       approveDepositAmountForERC20: deposit.approveForErc20,
     });
 
@@ -131,12 +134,15 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     // Adjust transaction amount.
     const amount = zksync.utils.closestPackableTransactionAmount(
-      ethers.utils.parseEther(transfer.amount)
+      this.syncProvider.tokenSet.parseToken(
+        transfer.tokenSymbol,
+        transfer.amount
+      )
     );
 
     // Adjust fee amount.
     const fee = zksync.utils.closestPackableTransactionFee(
-      ethers.utils.parseEther(transfer.fee)
+      this.syncProvider.tokenSet.parseToken(transfer.tokenSymbol, transfer.fee)
     );
 
     // Create operation data.
@@ -158,11 +164,17 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     const zksync = await import('zksync');
 
     // Adjust transaction amount.
-    const amount = ethers.utils.parseEther(withdrawal.amount);
+    const amount = this.syncProvider.tokenSet.parseToken(
+      withdrawal.tokenSymbol,
+      withdrawal.amount
+    );
 
     // Adjust fee amount.
     const fee = zksync.utils.closestPackableTransactionFee(
-      ethers.utils.parseEther(withdrawal.fee)
+      this.syncProvider.tokenSet.parseToken(
+        withdrawal.tokenSymbol,
+        withdrawal.fee
+      )
     );
 
     // Create operation data.
