@@ -57,6 +57,7 @@ export type Receipt = {
 };
 
 export interface Result {
+  hash?: string;
   getReceipt(): Promise<Receipt>;
   getReceiptVerify(): Promise<Receipt>;
 }
