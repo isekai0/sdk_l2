@@ -1,6 +1,6 @@
 {
   "name": "@stablepay/sdk_l2",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "description": "Official StablePay SDK for Ethereum Layer 2",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -56,13 +56,13 @@
     "tslint": "^6.1.2",
     "tslint-config-prettier": "^1.18.0",
     "tslint-eslint-rules": "^5.4.0",
-    "typescript": "^3.9.6"
+    "typescript": "^4.2.3"
   },
   "dependencies": {
     "@types/object-hash": "^1.3.4",
     "ethers": "^5.0.0",
     "object-hash": "^2.1.1",
-    "zksync": "^0.7.5"
+    "zksync": "^0.10.4"
   },
   "husky": {
     "hooks": {

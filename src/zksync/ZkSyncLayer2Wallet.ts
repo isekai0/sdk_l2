@@ -256,6 +256,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     // Generate set signing key tx.
     const changePubKey = await this.syncWallet.setSigningKey({
       feeToken: 'ETH',
+      ethAuthType: 'ECDSA',
     });
 
     // Wait until the tx is committed.
