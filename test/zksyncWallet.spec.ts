@@ -103,9 +103,9 @@ describe('zkSync Wallet-related functionality testing', () => {
       return Promise.resolve();
     };
 
-    // Mock unlockAccount to simulate account unlock. Need to cast to any
-    // since this method is private (TS).
-    (layer2Wallet as any).unlockAccount = () => {
+    // Mock unlockAccountIfNeeded to simulate account unlock. Need to cast
+    // to any since this method is private (TS).
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
       // Simulate account unlock.
       accountLocked = false;
       return Promise.resolve();
@@ -126,7 +126,7 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Expectations.
     expect(accountLocked).toBeFalsy();
-    expect(zkSyncWallet.syncTransfer).toHaveBeenCalledTimes(2);
+    expect(zkSyncWallet.syncTransfer).toHaveBeenCalledTimes(1);
   });
 
   it('should throw exception immediately on unlocked account when TRANSFER txn', async () => {
@@ -146,6 +146,11 @@ describe('zkSync Wallet-related functionality testing', () => {
     // Set as signing wallet.
     (layer2Wallet as any).isSigningWallet = true;
 
+    // Mock unlockAccountIfNeeded as it is always called.
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
+      return Promise.resolve();
+    };
+
     const ERROR_MSG = 'Metamask Cancel';
     // Mock internal zkSync transactional method.
     zkSyncWallet.syncTransfer.mockImplementation(async () => {
@@ -163,7 +168,7 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Expectations.
     await expect(transferFn).rejects.toThrow(ERROR_MSG);
-    // Check that the zkSync internal methoud was invoked exactly once.
+    // Check that the zkSync internal method was invoked exactly once.
     expect(zkSyncWallet.syncTransfer).toHaveBeenCalledTimes(1);
   });
 
@@ -182,6 +187,11 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Set as signing wallet.
     (layer2Wallet as any).isSigningWallet = true;
+
+    // Mock unlockAccountIfNeeded as it is always called.
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
+      return Promise.resolve();
+    };
 
     const fakeReceipt = {
       block: {
@@ -243,9 +253,9 @@ describe('zkSync Wallet-related functionality testing', () => {
       return Promise.resolve();
     };
 
-    // Mock unlockAccount to simulate account unlock. Need to cast to any
-    // since this method is private (TS).
-    (layer2Wallet as any).unlockAccount = () => {
+    // Mock unlockAccountIfNeeded to simulate account unlock. Need to cast
+    // to any since this method is private (TS).
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
       // Simulate account unlock.
       accountLocked = false;
       return Promise.resolve();
@@ -268,9 +278,8 @@ describe('zkSync Wallet-related functionality testing', () => {
     // Expectations.
     // Check that the account got unlocked.
     expect(accountLocked).toBeFalsy();
-    // Check that internal zkSync transactional method got invoked twice.
-    // This is exactly on retry after throwing due to locked account.
-    expect(zkSyncWallet.withdrawFromSyncToEthereum).toHaveBeenCalledTimes(2);
+    // Check that internal zkSync transactional method got invoked.
+    expect(zkSyncWallet.withdrawFromSyncToEthereum).toHaveBeenCalledTimes(1);
   });
 
   it('should throw exception immediately on unlocked account when WITHDRAW txn', async () => {
@@ -293,6 +302,11 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Set as signing wallet.
     (layer2Wallet as any).isSigningWallet = true;
+
+    // Mock unlockAccountIfNeeded as it is always called.
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
+      return Promise.resolve();
+    };
 
     const ERROR_MSG = 'Metamask Cancel';
     // Mock internal zkSync transactional method.
@@ -333,6 +347,11 @@ describe('zkSync Wallet-related functionality testing', () => {
 
     // Set as signing wallet.
     (layer2Wallet as any).isSigningWallet = true;
+
+    // Mock unlockAccountIfNeeded as it is always called.
+    (layer2Wallet as any).unlockAccountIfNeeded = () => {
+      return Promise.resolve();
+    };
 
     const fakeReceipt = {
       block: {
