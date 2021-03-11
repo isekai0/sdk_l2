@@ -12,7 +12,7 @@ const config: Config = {
   output: {
     format: ['cjs', 'esm'],
     sourceMap: true,
-    sourceMapExcludeSources: false
+    sourceMapExcludeSources: false,
   },
 };
 

@@ -208,29 +208,27 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
       if (!this.isSigningWallet) {
         await this.upgradeToSigningWallet();
       }
+
+      // Make sure the account is not locked. Note that if unlocking is needed,
+      // it will charge a fee for the "unlocking" transaction.
+      // TODO: The zkSync team announced that they will remove this thing of
+      // "locked" accounts. Therefore, remove this when that is confirmed.
+      await this.unlockAccountIfNeeded(operation);
+
       // Invoke wrapper zkSync operation.
       operationResult = await operationFn();
     } catch (err) {
-      // Detect if the exception was caused by trying to transfer from a
-      // locked account.
+      // Detect if the exception was caused by locked account error.
       if (!this.isAccountLockedError(err)) {
         // The exception cause is NOT due to locked account state. Therefore,
         // re-throw exception as it would have been done.
         throw err;
       }
-      // Cause for exception is that the account is locked. This will always
-      // happen the first time a tx is attempted.
-      try {
-        // Attempt to unlock account.
-        await this.unlockAccount();
-        // Retry operation now that the account is unlocked.
-        operationResult = await operationFn();
-      } catch (innerErr) {
-        // Do nothing with this inner exception. Just log.
-        // TODO decide on logging lib.
-        // Throw original exception.
-        throw err;
-      }
+
+      // Log a warning since there was an attempt to unlock the account but
+      // still, the error is account locked.
+      console.warn('Received account locked error from zkSync');
+      throw err;
     }
 
     return new ZkSyncResult(operationResult, operation);
@@ -242,7 +240,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
     return result;
   }
 
-  private async unlockAccount() {
+  private async unlockAccountIfNeeded(operation: Operation) {
     if (await this.syncWallet.isSigningKeySet()) {
       // Already unlocked. Nothing else to do.
       return;
@@ -255,7 +253,7 @@ export class ZkSyncLayer2Wallet implements Layer2Wallet {
 
     // Generate set signing key tx.
     const changePubKey = await this.syncWallet.setSigningKey({
-      feeToken: 'ETH',
+      feeToken: operation.tokenSymbol,
       ethAuthType: 'ECDSA',
     });
 
