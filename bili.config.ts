@@ -11,6 +11,8 @@ const config: Config = {
   input: 'src/index.ts',
   output: {
     format: ['cjs', 'esm'],
+    sourceMap: true,
+    sourceMapExcludeSources: false
   },
 };
 
