@@ -57,7 +57,9 @@ export class Layer2Manager {
           return this.providerInstances.get(key)!;
       }
     } catch (err) {
-      throw new Error(`Error encountered while creating provider instance. ${err.message}`);
+      throw new Error(
+        `Error encountered while creating provider instance. ${err.message}`
+      );
     }
 
     throw new Error('Unsupported provider');
