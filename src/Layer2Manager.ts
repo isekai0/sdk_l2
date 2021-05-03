@@ -41,6 +41,9 @@ export class Layer2Manager {
     try {
       switch (layer2Type) {
         case Layer2Type.ZK_SYNC:
+          if (network === 'goerli') {
+            throw new Error('Network Goerli not supported for zksync provider');
+          }
           if (!this.providerInstances.has(key)) {
             const newProvider = await getZkSyncProvider(network);
             this.providerInstances.set(key, newProvider);
@@ -54,7 +57,7 @@ export class Layer2Manager {
           return this.providerInstances.get(key)!;
       }
     } catch (err) {
-      throw new Error('Error encountered while creating provider instance');
+      throw new Error(`Error encountered while creating provider instance. ${err.message}`);
     }
 
     throw new Error('Unsupported provider');
@@ -68,6 +71,6 @@ export class Layer2Manager {
    * @beta
    */
   getSupportedLayer2Types(): Set<Layer2Type> {
-    return new Set([Layer2Type.ZK_SYNC]);
+    return new Set([Layer2Type.ZK_SYNC, Layer2Type.LOOPRING]);
   }
 }
