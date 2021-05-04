@@ -7,6 +7,7 @@ export type Network =
   | 'rinkeby'
   | 'ropsten'
   | 'homestead'
+  | 'goerli'
   | 'mainnet';
 
 export enum Layer2Type {

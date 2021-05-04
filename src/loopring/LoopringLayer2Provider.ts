@@ -6,7 +6,7 @@ import { Layer2WalletBuilder } from 'Layer2WalletBuilder';
 import { ethers } from 'ethers';
 
 export async function getLoopringProvider(
-  network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet'
+  network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet' | 'goerli'
 ): Promise<Layer2Provider> {
   return LoopringLayer2Provider.newInstance(network);
 }
@@ -21,7 +21,7 @@ class LoopringLayer2Provider implements Layer2Provider {
   }
 
   public static async newInstance(
-    network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet'
+    network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet' | 'goerli'
   ): Promise<Layer2Provider> {
     // Create promise for new instance.
     return new Promise((resolve, reject) => {
