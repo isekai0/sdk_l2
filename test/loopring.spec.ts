@@ -6,7 +6,6 @@ import { Layer2Wallet } from '../src/Layer2Wallet';
 
 import { ethers } from 'ethers';
 
-
 require('dotenv').config();
 
 // Define 10-second timeout.
@@ -51,7 +50,7 @@ describe('Integration tests (require connection to a real service)', () => {
   });
 
   // TODO: Most of these will be omitted since they call real services before mocking.
-  xtest('Get collection of supported tokens', async () => {
+  xit('Get collection of supported tokens', async () => {
     // Test Setup.
     // Method under test.
     const supportedTokens = await provider.getSupportedTokens();
@@ -63,7 +62,6 @@ describe('Integration tests (require connection to a real service)', () => {
     expect(supportedTokens.has('ETH')).toBeTruthy();
   });
 });
-
 
 // Utility functions
 function getMockedSigner(network: Network): ethers.Signer {

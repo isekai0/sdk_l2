@@ -22,10 +22,16 @@ enum Security {
 
 class LoopringLayer2Provider implements Layer2Provider {
   private walletBuilder: Layer2WalletBuilder;
+  private supportedNetworks: Network[] = ['mainnet', 'goerli']
 
   private constructor(
     private network: Network,
   ) {
+    if (!this.supportedNetworks.includes(network)) {
+      throw new Error(
+        `Network not supported: ${network}. Supported networks: ${this.supportedNetworks}.`)
+    }
+    // Network supported. Proceed to create the wallet.
     this.walletBuilder = new LoopringLayer2WalletBuilder(this.network);
   }
 
@@ -96,12 +102,12 @@ class LoopringLayer2Provider implements Layer2Provider {
   }
 
   LOOPRING_REST_HOSTS_BY_NETWORK = {
-    'localhost': '',
-    'rinkeby': '',
-    'ropsten': '',
+    'localhost': undefined,
+    'rinkeby': undefined,
+    'ropsten': undefined,
     'mainnet': 'https://api3.loopring.io',
-    'goerli': '',
-    'homestead': ''
+    'goerli': 'https://uat3.loopring.io',
+    'homestead': undefined
   }
 
   async restInvoke(urlPath: string) {
