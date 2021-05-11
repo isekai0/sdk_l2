@@ -220,7 +220,6 @@ function getMockedSigner(network: Network): ethers.Signer {
   expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy();
 
   // Create ethereum wallet using ethers.js
-
   // TODO: Obtain signer from mocked blocknative and provider.
   const ethersWallet = ethers.Wallet.fromMnemonic(
     DO_NOT_REVEAL_THESE_MNEMONICS
