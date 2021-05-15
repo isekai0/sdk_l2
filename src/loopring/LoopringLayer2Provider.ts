@@ -57,7 +57,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
       );
     }
     // Network supported. Proceed to create the wallet.
-    this.walletBuilder = new LoopringLayer2WalletBuilder(this.network);
+    this.walletBuilder = new LoopringLayer2WalletBuilder(this.network, this);
   }
 
   public static async newInstance(
