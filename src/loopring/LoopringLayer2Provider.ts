@@ -16,20 +16,18 @@ enum Security {
   NONE = 0,
   EDDSA_SIGN = 1,
   API_KEY = 2,
-  ECDSA_AUTH = 4
+  ECDSA_AUTH = 4,
 }
-
 
 class LoopringLayer2Provider implements Layer2Provider {
   private walletBuilder: Layer2WalletBuilder;
-  private supportedNetworks: Network[] = ['mainnet', 'goerli']
+  private supportedNetworks: Network[] = ['mainnet', 'goerli'];
 
-  private constructor(
-    private network: Network,
-  ) {
+  private constructor(private network: Network) {
     if (!this.supportedNetworks.includes(network)) {
       throw new Error(
-        `Network not supported: ${network}. Supported networks: ${this.supportedNetworks}.`)
+        `Network not supported: ${network}. Supported networks: ${this.supportedNetworks}.`
+      );
     }
     // Network supported. Proceed to create the wallet.
     this.walletBuilder = new LoopringLayer2WalletBuilder(this.network);
@@ -80,14 +78,14 @@ class LoopringLayer2Provider implements Layer2Provider {
     toAddress: string,
     tokenSymbol: string
   ): Promise<string> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async getTransferFee(
     toAddress: string,
     tokenSymbol: string
   ): Promise<string> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   getReceipt(txHash: string): Promise<Receipt> {
@@ -98,33 +96,30 @@ class LoopringLayer2Provider implements Layer2Provider {
     throw new Error('Method not implemented.');
   }
 
-  async disconnect() {
-  }
+  async disconnect() {}
 
   LOOPRING_REST_HOSTS_BY_NETWORK = {
-    'localhost': undefined,
-    'rinkeby': undefined,
-    'ropsten': undefined,
-    'mainnet': 'https://api3.loopring.io',
-    'goerli': 'https://uat3.loopring.io',
-    'homestead': undefined
-  }
+    localhost: undefined,
+    rinkeby: undefined,
+    ropsten: undefined,
+    mainnet: 'https://api3.loopring.io',
+    goerli: 'https://uat3.loopring.io',
+    homestead: undefined,
+  };
 
   async restInvoke(urlPath: string) {
     const data = {
-      security: Security.NONE
+      security: Security.NONE,
     };
 
-    const response = await axios.get(
-      urlPath,
-      {
-        baseURL: this.LOOPRING_REST_HOSTS_BY_NETWORK[this.network],
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        data
-      });
+    const response = await axios.get(urlPath, {
+      baseURL: this.LOOPRING_REST_HOSTS_BY_NETWORK[this.network],
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      data,
+    });
 
     return response.data;
   }

@@ -6,7 +6,7 @@ import { Network } from '../types';
 import { LoopringLayer2Wallet } from './LoopringLayer2Wallet';
 
 export class LoopringLayer2WalletBuilder implements Layer2WalletBuilder {
-  constructor(private network: Network) { }
+  constructor(private network: Network) {}
 
   getNetwork(): Network {
     return this.network;

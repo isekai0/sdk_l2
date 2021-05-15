@@ -17,10 +17,7 @@ import {
 export class LoopringLayer2Wallet implements Layer2Wallet {
   private accountStream: AccountStream;
 
-  constructor(
-    private network: Network,
-    private ethersSigner: ethers.Signer,
-  ) {
+  constructor(private network: Network, private ethersSigner: ethers.Signer) {
     this.accountStream = new AccountStream(this);
   }
 
@@ -29,45 +26,45 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
   }
 
   getAddress(): string {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async getBalance(): Promise<BigNumberish> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
   async getBalanceVerified(): Promise<BigNumberish> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async getTokenBalance(tokenSymbol: string): Promise<BigNumberish> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
   async getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl
   async getAccountBalances(): Promise<[string, string, AccountBalanceState][]> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async getAccountTokenBalances(): Promise<AccountBalances> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async transfer(transfer: Transfer): Promise<Result> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async withdraw(withdrawal: Withdrawal): Promise<Result> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   async getAccountEvents(): Promise<EventEmitter> {
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 }
