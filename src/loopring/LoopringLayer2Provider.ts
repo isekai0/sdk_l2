@@ -19,9 +19,36 @@ enum Security {
   ECDSA_AUTH = 4,
 }
 
-class LoopringLayer2Provider implements Layer2Provider {
+export class TokenData {
+  constructor(
+    private _tokenId: number,
+    private _symbol: string,
+    private _name: string,
+    private _address: string
+  ) {}
+
+  get tokenId() {
+    return this._tokenId;
+  }
+  get symbol() {
+    return this._symbol;
+  }
+  get name() {
+    return this._name;
+  }
+  get address() {
+    return this._address;
+  }
+}
+
+export type TokenDataDict = { [symbol: string]: TokenData };
+
+export class LoopringLayer2Provider implements Layer2Provider {
   private walletBuilder: Layer2WalletBuilder;
   private supportedNetworks: Network[] = ['mainnet', 'goerli'];
+
+  // Lazy load this member, so initialize to null.
+  private _tokenDataBySymbol: TokenDataDict | null = null;
 
   private constructor(private network: Network) {
     if (!this.supportedNetworks.includes(network)) {
@@ -59,12 +86,11 @@ class LoopringLayer2Provider implements Layer2Provider {
   }
 
   async getSupportedTokens(): Promise<Set<string>> {
-    const urlPath = `/api/v3/exchange/tokens`;
+    const tokenDataBySymbol = (await this.getTokenDataBySymbol()) as object;
     const ret = new Set<string>();
 
-    const tokenConfigCollection = await this.restInvoke(urlPath);
-    for (const tokenConfig of tokenConfigCollection) {
-      ret.add(tokenConfig.symbol);
+    for (const symbol of Object.keys(tokenDataBySymbol)) {
+      ret.add(symbol);
     }
 
     return ret;
@@ -98,22 +124,64 @@ class LoopringLayer2Provider implements Layer2Provider {
 
   async disconnect() {}
 
-  LOOPRING_REST_HOSTS_BY_NETWORK = {
-    localhost: undefined,
-    rinkeby: undefined,
-    ropsten: undefined,
-    mainnet: 'https://api3.loopring.io',
-    goerli: 'https://uat3.loopring.io',
-    homestead: undefined,
+  private LOOPRING_INFO_BY_NETWORK = {
+    localhost: [undefined, undefined],
+    rinkeby: [undefined, undefined],
+    ropsten: [undefined, undefined],
+    mainnet: [
+      'https://api3.loopring.io',
+      '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
+    ],
+    goerli: [
+      'https://uat3.loopring.io',
+      '0x2e76EBd1c7c0C8e7c2B875b6d505a260C525d25e',
+    ],
+    homestead: [undefined, ''],
   };
 
-  async restInvoke(urlPath: string) {
+  getLoopringHostByNetwork(network: Network) {
+    return this.LOOPRING_INFO_BY_NETWORK[network][0];
+  }
+
+  getLoopringExchangeContractAddressByNetwork(network: Network): string {
+    const ret = this.LOOPRING_INFO_BY_NETWORK[network][1];
+    if (!ret) {
+      throw new Error(`Network ${network} not supported`);
+    }
+    return ret;
+  }
+
+  async getTokenDataBySymbol() {
+    if (!this._tokenDataBySymbol) {
+      const urlPath = `/api/v3/exchange/tokens`;
+      const tokenConfigCollection = await this.restInvoke(urlPath);
+
+      this._tokenDataBySymbol = tokenConfigCollection.reduce(
+        (accum: TokenDataDict, td: any) => {
+          return {
+            ...accum,
+            [td.symbol]: new TokenData(
+              td.tokenId,
+              td.symbol,
+              td.name,
+              td.address
+            ),
+          };
+        },
+        {}
+      );
+    }
+
+    return this._tokenDataBySymbol;
+  }
+
+  private async restInvoke(urlPath: string) {
     const data = {
       security: Security.NONE,
     };
 
     const response = await axios.get(urlPath, {
-      baseURL: this.LOOPRING_REST_HOSTS_BY_NETWORK[this.network],
+      baseURL: this.getLoopringHostByNetwork(this.network),
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
