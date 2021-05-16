@@ -133,7 +133,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
       '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
     ],
     goerli: [
-      'https://uat3.loopring.io',
+      'https://uat2.loopring.io',
       '0x2e76EBd1c7c0C8e7c2B875b6d505a260C525d25e',
     ],
     homestead: [undefined, ''],

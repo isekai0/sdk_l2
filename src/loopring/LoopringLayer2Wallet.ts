@@ -18,6 +18,7 @@ import {
   Network,
   BigNumberish,
 } from '../types';
+import { LoopringResult } from './LoopringResult';
 
 export class LoopringLayer2Wallet implements Layer2Wallet {
   private accountStream: AccountStream;
@@ -107,10 +108,27 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     const tokenData = this.tokenDataBySymbol[deposit.tokenSymbol];
 
     // TODO: Complete deposit call.
-    const tx = this.exchangeContract.deposit();
+    const from = this.address;
+    const to = this.address;
+    const tokenAddress = tokenData.address;
+    const amountInWei = ethers.utils.parseEther(deposit.amount);
+    const auxiliaryData = 0x00;
+    const overrides = {
+      gasLimit: 75_000,
+      value: 0, //amountInWei
+    };
+    const tx = await this.exchangeContract.deposit(
+      from,
+      to,
+      tokenAddress,
+      amountInWei,
+      auxiliaryData,
+      overrides
+    );
 
-    tokenData.address;
-    throw new Error('Not finished');
+    const result = new LoopringResult(tx, deposit);
+
+    return result;
   }
 
   async transfer(transfer: Transfer): Promise<Result> {
