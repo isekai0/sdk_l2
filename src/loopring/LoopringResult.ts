@@ -6,7 +6,7 @@ import { ethers } from 'ethers';
 export class LoopringResult implements Result {
   // The result holder is an awaited transaction as a result of calling the
   // the smart contract's method.
-  constructor(private resultHolder: any, private operation: Operation) {}
+  constructor(private resultHolder: any, private operation: Operation) { }
 
   get hash(): string {
     // Obtain transaction hash from result object.
@@ -56,10 +56,6 @@ export class LoopringResult implements Result {
         committed: false,
         verified: false,
       };
-
-      console.error('ERROR GETTING RECEIPT');
-      console.error(err);
-      throw err;
     }
 
     return result;
