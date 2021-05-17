@@ -114,8 +114,8 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     const amountInWei = ethers.utils.parseEther(deposit.amount);
     const auxiliaryData = 0x00;
     const overrides = {
-      gasLimit: 75_000,
-      value: 0, //amountInWei
+      gasLimit: 300_000,
+      value: amountInWei,
     };
     const tx = await this.exchangeContract.deposit(
       from,
