@@ -105,9 +105,11 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     if (!(deposit.tokenSymbol in this.tokenDataBySymbol)) {
       throw new Error(`Token ${deposit.tokenSymbol} not supported`);
     }
+
+    // Obtain token data with the deposit's coin symbol.
     const tokenData = this.tokenDataBySymbol[deposit.tokenSymbol];
 
-    // TODO: Complete deposit call.
+    // Deposit operation parameters.
     const from = this.address;
     const to = this.address;
     const tokenAddress = tokenData.address;
@@ -117,6 +119,8 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
       gasLimit: 300_000,
       value: amountInWei,
     };
+
+    // Perform deposit call.
     const tx = await this.exchangeContract.deposit(
       from,
       to,
@@ -126,6 +130,7 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
       overrides
     );
 
+    // Create Loopring result object.
     const result = new LoopringResult(tx, deposit);
 
     return result;
