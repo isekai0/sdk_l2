@@ -21,6 +21,8 @@ import {
 import { LoopringResult } from './LoopringResult';
 
 export class LoopringLayer2Wallet implements Layer2Wallet {
+  private static readonly DEFAULT_GAS_LIMIT = 300_000;
+
   private accountStream: AccountStream;
   private exchangeContract: ethers.Contract;
 
@@ -116,7 +118,7 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     const amountInWei = ethers.utils.parseEther(deposit.amount);
     const auxiliaryData = 0x00;
     const overrides = {
-      gasLimit: 300_000,
+      gasLimit: LoopringLayer2Wallet.DEFAULT_GAS_LIMIT,
       value: amountInWei,
     };
 
