@@ -3,6 +3,9 @@ import { Layer2Manager } from '../src/Layer2Manager';
 import { Layer2Provider } from '../src/Layer2Provider';
 import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
 import { Layer2Wallet } from '../src/Layer2Wallet';
+import { LoopringSigningService } from '../src/loopring/LoopringSigningService';
+import { LoopringLayer2Provider } from '../src/loopring/LoopringLayer2Provider';
+
 import { Deposit } from '../src/Operation';
 
 import { ethers } from 'ethers';
@@ -87,6 +90,30 @@ describe('Integration tests (require connection to a real service)', () => {
     expect(receipt.operationType).toBe(OperationType.Deposit);
     expect(receipt.to).toBe(myAddress);
     expect(receipt.committed).toBeTruthy();
+  });
+
+  xit('Check account key generation used to sign REST API requests', async () => {
+    // Test setup.
+    const loopringProvider = provider as LoopringLayer2Provider;
+    const contractAddress = loopringProvider.getLoopringExchangeContractAddressByNetwork(
+      network
+    );
+
+    const signer = getMockedSigner(network);
+    const signingService = new LoopringSigningService(signer);
+    const nonce = 0;
+
+    // Method under test
+    const accountKeyPair = await signingService.getAccountKeyPair(
+      contractAddress,
+      nonce
+    );
+
+    // Collect results.
+    const accountKey = signingService.keyPairConcat(accountKeyPair);
+
+    // Expectations.
+    expect(accountKey.length).toBe(2 + 64 * 3);
   });
 });
 
