@@ -5,17 +5,20 @@ import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
 import { Layer2Wallet } from '../src/Layer2Wallet';
 import { LoopringSigningService } from '../src/loopring/LoopringSigningService';
 import { LoopringLayer2Provider } from '../src/loopring/LoopringLayer2Provider';
+import { LoopringLayer2Wallet } from '../src/loopring/LoopringLayer2Wallet';
+import { UrlEddsaSignHelper } from '../src/loopring/EddsaSignHelper';
 
 import { Deposit } from '../src/Operation';
 
 import { ethers } from 'ethers';
+import { AxiosRequestConfig } from 'axios';
 
 require('dotenv').config();
 
 // Define 10-second timeout.
 jest.setTimeout(10_000);
 
-const network: Network = 'goerli';
+const network: Network = 'mainnet';
 
 let layer2ProviderManager: Layer2Manager;
 let provider: Layer2Provider;
@@ -114,6 +117,31 @@ describe('Integration tests (require connection to a real service)', () => {
 
     // Expectations.
     expect(accountKey.length).toBe(2 + 64 * 3);
+  });
+
+  xit('Get accounts key for off-chain requests', async () => {
+    const wallet = layer2Wallet as LoopringLayer2Wallet;
+    // const userInfo = await wallet.getUserInfo();
+
+    // console.log(userInfo);
+
+    const accountId = 21535; //userInfo.accountId;
+    const key = await wallet.getUserOffchainRequestKey(accountId);
+    console.log(key);
+  });
+
+  it('Check URL signer', async () => {
+    const LOOPRING_REST_HOST = 'https://uat2.loopring.io';
+    const signer = new UrlEddsaSignHelper(1, LOOPRING_REST_HOST);
+    const request: AxiosRequestConfig = {
+      method: 'GET',
+      url: '/api/v2/apiKey',
+      data: {
+        accountId: 10010,
+      },
+    };
+    const hashValue = signer.hash(request);
+    console.log(`URL SIGNER: ${hashValue}`);
   });
 });
 
