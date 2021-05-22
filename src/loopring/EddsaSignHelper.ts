@@ -14,26 +14,27 @@ export abstract class EddsaSignHelper {
   constructor(
     protected readonly poseidonHasher: any,
     protected readonly privateKey: any
-  ) {}
+  ) {
+    // Nothing else to initialize here.
+  }
 
-  hash(structureData: any) {
-    // const serializedData = this.serializeData(structureData);
-    // TODO: Implement!
-    throw new Error('implement');
+  hash(structureData: any): string {
+    const serializedData = this.serializeData(structureData);
+    const msgHash = this.poseidonHasher(serializedData);
+    return msgHash
   }
 
   sign(structureData: any) {
-    // TODO: Implement!
-    throw new Error('implement');
+    const msgHash = this.hash(structureData);
+    const signedMessage = EdDSA.sign0(this.privateKey, msgHash);
 
-    // def sign(self, structure_data):
-    // msgHash = self.hash(structure_data)
-    // signedMessage = PoseidonEdDSA.sign(msgHash, FQ(int(self.private_key, 16)))
-    // return "0x" + "".join([
-    //                 hex(int(signedMessage.sig.R.x))[2:].zfill(64),
-    //                 hex(int(signedMessage.sig.R.y))[2:].zfill(64),
-    //                 hex(int(signedMessage.sig.s))[2:].zfill(64)
-    //             ])
+    const rx = this.pad64(bigInt(signedMessage.Rx).toString(16));
+    const ry = this.pad64(bigInt(signedMessage.Ry).toString(16));
+    const s = this.pad64(bigInt(signedMessage.s).toString(16));
+
+    const result = `0x${rx}${ry}${s}`;
+
+    return result;
   }
 
   verify(message: any, sig: any): any {
@@ -41,6 +42,18 @@ export abstract class EddsaSignHelper {
   }
 
   abstract serializeData(data: any): any;
+
+
+  private pad64(s: string): string {
+    const width = 64;
+    if (s.length >= width) {
+      return s;
+    }
+
+    const ret = new Array(width - s.length + 1).join('0') + s;
+
+    return ret;
+  }
 }
 
 export class UrlEddsaSignHelper extends EddsaSignHelper {
@@ -48,11 +61,12 @@ export class UrlEddsaSignHelper extends EddsaSignHelper {
     super(poseidon.createHash(2, 6, 53), privateKey);
   }
 
-  hash(structureData: any) {
+  hash(structureData: any): string {
     const serializedData = this.serializeData(structureData);
     const hasher = sha256.create();
     hasher.update(utf8.encode(serializedData));
-    const msgHash = bigInt(hasher.hex(), 16).mod(SNARK_SCALAR_FIELD);
+    const hashValue = bigInt(hasher.hex(), 16).mod(SNARK_SCALAR_FIELD);
+    const msgHash = `0x${hashValue.toString(16)}`;
     return msgHash;
   }
 
