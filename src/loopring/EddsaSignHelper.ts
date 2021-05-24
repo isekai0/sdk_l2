@@ -91,39 +91,3 @@ export class UrlEddsaSignHelper extends EddsaSignHelper {
     return result;
   }
 }
-
-// def __init__(self, poseidon_params, private_key):
-//     self.poseidon_sign_param = poseidon_params
-//     self.private_key = private_key
-//     # print(f"self.private_key = {self.private_key}")
-
-// def hash(self, structure_data):
-//     serialized_data = self.serialize_data(structure_data)
-//     msgHash = poseidon(serialized_data, self.poseidon_sign_param)
-//     return msgHash
-
-// def sign(self, structure_data):
-//     msgHash = self.hash(structure_data)
-//     signedMessage = PoseidonEdDSA.sign(msgHash, FQ(int(self.private_key, 16)))
-//     return "0x" + "".join([
-//                     hex(int(signedMessage.sig.R.x))[2:].zfill(64),
-//                     hex(int(signedMessage.sig.R.y))[2:].zfill(64),
-//                     hex(int(signedMessage.sig.s))[2:].zfill(64)
-//                 ])
-
-// def sigStrToSignature(self, sig):
-//     assert len(sig) == 194
-//     pureHexSig = sig[2:]
-//     return Signature(
-//         [
-//             int(pureHexSig[:64], 16),
-//             int(pureHexSig[64:128], 16)
-//         ],
-//         int(pureHexSig[128:], 16)
-//     )
-
-// def serialize_data(self, data):
-//     pass
-
-// def verify(self, message, sig):
-//     return PoseidonEdDSA.verify(sig.A, sig.sig, sig.msg)
