@@ -1,6 +1,7 @@
 import { AxiosRequestConfig } from 'axios';
 import { sha256 } from 'js-sha256';
 import { EdDSA } from './sign/eddsa';
+import assert from 'assert';
 
 const bigInt = require('big-integer');
 const poseidon = require('./sign/poseidon');
@@ -21,12 +22,12 @@ export abstract class EddsaSignHelper {
   hash(structureData: any): string {
     const serializedData = this.serializeData(structureData);
     const msgHash = this.poseidonHasher(serializedData);
-    return msgHash
+    return msgHash;
   }
 
   sign(structureData: any) {
     const msgHash = this.hash(structureData);
-    const signedMessage = EdDSA.sign0(this.privateKey, msgHash);
+    const signedMessage = EdDSA.sign(this.privateKey, msgHash);
 
     const rx = this.pad64(bigInt(signedMessage.Rx).toString(16));
     const ry = this.pad64(bigInt(signedMessage.Ry).toString(16));
@@ -43,7 +44,6 @@ export abstract class EddsaSignHelper {
 
   abstract serializeData(data: any): any;
 
-
   private pad64(s: string): string {
     const width = 64;
     if (s.length >= width) {
@@ -57,7 +57,7 @@ export abstract class EddsaSignHelper {
 }
 
 export class UrlEddsaSignHelper extends EddsaSignHelper {
-  constructor(privateKey: any, private host: string) {
+  constructor(privateKey: any, private host?: string) {
     super(poseidon.createHash(2, 6, 53), privateKey);
   }
 
@@ -72,9 +72,12 @@ export class UrlEddsaSignHelper extends EddsaSignHelper {
 
   serializeData(data: any): string {
     const request = data as AxiosRequestConfig;
+    const someHost = request.baseURL || this.host;
+    assert(!!someHost);
+
     const method = request.method;
-    const url = encodeURIComponent(this.host + request.url);
-    const items = request.data as Record<string, string>;
+    const url = encodeURIComponent(someHost + request.url);
+    const items = (request.params as Record<string, string>) || {};
 
     const itemDataArray = [];
     for (const [k, v] of Object.entries(items)) {
