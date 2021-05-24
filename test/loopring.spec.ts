@@ -133,10 +133,7 @@ describe('Integration tests (require connection to a real service)', () => {
 
   xit('Check URL signer', async () => {
     const LOOPRING_REST_HOST = 'https://api3.loopring.io';
-    const urlSigner = new UrlEddsaSignHelper(
-      '0x29e3155bbfc60c4f15f71c643546bbb1d0ced6720d157c5082d7fdf5aa90a32',
-      LOOPRING_REST_HOST
-    );
+    const urlSigner = new UrlEddsaSignHelper(getEddsaKey(), LOOPRING_REST_HOST);
     const request: AxiosRequestConfig = {
       method: 'GET',
       url: '/api/v3/apiKey',
