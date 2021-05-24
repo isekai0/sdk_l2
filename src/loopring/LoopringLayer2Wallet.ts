@@ -19,12 +19,15 @@ import {
   BigNumberish,
 } from '../types';
 import { LoopringResult } from './LoopringResult';
+import { LoopringClientService } from './LoopringClientService';
 
 export class LoopringLayer2Wallet implements Layer2Wallet {
   private static readonly DEFAULT_GAS_LIMIT = 300_000;
 
-  private accountStream: AccountStream;
-  private exchangeContract: ethers.Contract;
+  private readonly accountStream: AccountStream;
+  private readonly exchangeContract: ethers.Contract;
+  private readonly clientService: LoopringClientService;
+  private readonly host: string;
 
   private constructor(
     private readonly network: Network,
@@ -34,6 +37,11 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     private readonly tokenDataBySymbol: TokenDataDict
   ) {
     this.accountStream = new AccountStream(this);
+    this.host = this.loopringProvider.getLoopringHostByNetwork(this.network);
+    this.clientService = new LoopringClientService(
+      this.ethersSigner,
+      this.host
+    );
 
     // Instantiate Loopring exchange address contract.
     const contractAddress = loopringProvider.getLoopringExchangeContractAddressByNetwork(
@@ -78,6 +86,10 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
 
   getAddress(): string {
     return this.address;
+  }
+
+  getClientService(): LoopringClientService {
+    return this.clientService;
   }
 
   async getBalance(): Promise<BigNumberish> {

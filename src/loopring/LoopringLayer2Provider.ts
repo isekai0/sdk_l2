@@ -3,7 +3,7 @@ import { Layer2Type, Receipt, Network } from '../types';
 import { LoopringLayer2WalletBuilder } from './LoopringLayer2WalletBuilder';
 import { Layer2WalletBuilder } from 'Layer2WalletBuilder';
 
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { ethers } from 'ethers';
 
 export async function getLoopringProvider(
@@ -167,17 +167,20 @@ export class LoopringLayer2Provider implements Layer2Provider {
     // contract invocation.
   }
 
-  private async restInvoke(urlPath: string) {
+  public async restInvoke(urlPath: string, headers?: Record<string, string>) {
     const data = {
       security: Security.NONE,
     };
 
+    const allHeaders = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...headers,
+    };
+
     const response = await axios.get(urlPath, {
       baseURL: this.getLoopringHostByNetwork(this.network),
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
+      headers: allHeaders,
       data,
     });
 

@@ -3,24 +3,28 @@ import { Layer2Manager } from '../src/Layer2Manager';
 import { Layer2Provider } from '../src/Layer2Provider';
 import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
 import { Layer2Wallet } from '../src/Layer2Wallet';
-import { LoopringSigningService } from '../src/loopring/LoopringSigningService';
+import { LoopringClientService } from '../src/loopring/LoopringClientService';
 import { LoopringLayer2Provider } from '../src/loopring/LoopringLayer2Provider';
+import { LoopringLayer2Wallet } from '../src/loopring/LoopringLayer2Wallet';
+import { UrlEddsaSignHelper } from '../src/loopring/EddsaSignHelper';
 
 import { Deposit } from '../src/Operation';
 
 import { ethers } from 'ethers';
+import { AxiosRequestConfig } from 'axios';
 
 require('dotenv').config();
 
 // Define 10-second timeout.
 jest.setTimeout(10_000);
 
-const network: Network = 'goerli';
+const network: Network = 'mainnet';
 
 let layer2ProviderManager: Layer2Manager;
 let provider: Layer2Provider;
 let layer2WalletBuilder: Layer2WalletBuilder;
 let layer2Wallet: Layer2Wallet;
+let loopringClientService: LoopringClientService;
 
 describe('Integration tests (require connection to a real service)', () => {
   // Common setup.
@@ -99,21 +103,48 @@ describe('Integration tests (require connection to a real service)', () => {
       network
     );
 
-    const signer = getMockedSigner(network);
-    const signingService = new LoopringSigningService(signer);
+    const clientService = (layer2Wallet as LoopringLayer2Wallet).getClientService();
     const nonce = 0;
 
     // Method under test
-    const accountKeyPair = await signingService.getAccountKeyPair(
+    const accountKeyPair = await clientService.getAccountKeyPair(
       contractAddress,
       nonce
     );
 
     // Collect results.
-    const accountKey = signingService.keyPairConcat(accountKeyPair);
+    const accountKey = clientService.keyPairConcat(accountKeyPair);
 
     // Expectations.
     expect(accountKey.length).toBe(2 + 64 * 3);
+  });
+
+  xit('Get accounts api key for off-chain requests', async () => {
+    const wallet = layer2Wallet as LoopringLayer2Wallet;
+    const clientService = wallet.getClientService();
+    const userInfo = await clientService.getUserInfo();
+
+    clientService.initUrlSignHelper(getEddsaKey());
+
+    const accountId = userInfo.accountId;
+    const key = await clientService.getUserOffchainApiKey(accountId);
+    console.log(key);
+  });
+
+  xit('Check URL signer', async () => {
+    const LOOPRING_REST_HOST = 'https://api3.loopring.io';
+    const urlSigner = new UrlEddsaSignHelper(getEddsaKey(), LOOPRING_REST_HOST);
+    const request: AxiosRequestConfig = {
+      method: 'GET',
+      url: '/api/v3/apiKey',
+      data: {
+        accountId: 21535,
+      },
+    };
+    const hashValue = urlSigner.hash(request);
+    console.log(`URL SIGNER: ${hashValue}`);
+    const signature = urlSigner.sign(request);
+    console.log(`URL SIGNATURE: ${signature}`);
   });
 });
 
@@ -134,4 +165,12 @@ function getMockedSigner(network: Network): ethers.Signer {
   ).connect(ethersProvider);
 
   return ethersWallet;
+}
+
+function getEddsaKey(): string {
+  const DO_NOT_REVEAL_THIS_EDDSA_KEY: string = process.env
+    .TEST_EDDSA_PRIVATE_KEY!;
+  expect(DO_NOT_REVEAL_THIS_EDDSA_KEY).toBeTruthy();
+
+  return DO_NOT_REVEAL_THIS_EDDSA_KEY;
 }

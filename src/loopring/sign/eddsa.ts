@@ -1,6 +1,7 @@
 // Taken and modified from
 // https://github.com/iden3/circomlib
 import { KeyPair, Signature } from './types';
+import { sha512 } from 'js-sha512';
 
 const createBlakeHash = require('blake-hash');
 const bigInt = require('snarkjs').bigInt;
@@ -21,24 +22,34 @@ export class EdDSA {
     return keyPair;
   }
 
-  public static sign(strKey: string, msg: string) {
+  public static sign(strKey: string, message: string) {
+    // Key and message to big int.
     const key = bigInt(strKey);
-    const prv = bigInt.leInt2Buff(key, 32);
+    const msg = bigInt(message);
 
-    const h1 = createBlakeHash('blake512').update(prv).digest();
-    const msgBuff = bigInt.leInt2Buff(bigInt(msg), 32);
-    const rBuff = createBlakeHash('blake512')
-      .update(Buffer.concat([h1.slice(32, 64), msgBuff]))
-      .digest();
-    let r = bigInt.leBuff2int(rBuff);
-    r = r.mod(babyJub.subOrder);
+    // K: key byte buffer (little endian)
+    const K = bigInt.leInt2Buff(key, 32);
+    // M: message byte buffer (little endian)
+    const M = bigInt.leInt2Buff(msg, 32);
+    // L: JUBJUB_L (subOrder)
+    const L = babyJub.subOrder;
+    // H: SHA512 function of (K, M)
+    const H = sha512.digest(Buffer.concat([K, M]));
+    // r = H(K, M) mod L
+    const r = bigInt.leBuff2int(Buffer.from(H)).mod(L);
 
+    // A = kB
     const A = babyJub.mulPointEscalar(babyJub.Base8, key);
+    // R = rB
     const R8 = babyJub.mulPointEscalar(babyJub.Base8, r);
 
     const hasher = poseidon.createHash(6, 6, 52);
-    const hm = hasher([R8[0], R8[1], A[0], A[1], msg]);
-    const S = r.add(hm.mul(key)).mod(babyJub.subOrder);
+
+    // t = poseidonHash(R, A, M)
+    const t = hasher([R8[0], R8[1], A[0], A[1], msg]);
+
+    // S = r + (t * k)
+    const S = r.add(t.mul(key)).mod(babyJub.order);
 
     const signature: Signature = {
       Rx: R8[0].toString(),
