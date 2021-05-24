@@ -18,10 +18,10 @@ require('dotenv').config();
 // Define 10-second timeout.
 jest.setTimeout(10_000);
 
-const network: Network = 'mainnet';
+const network: Network = 'goerli';
 
 let layer2ProviderManager: Layer2Manager;
-let provider: Layer2Provider;
+let layer2Provider: Layer2Provider;
 let layer2WalletBuilder: Layer2WalletBuilder;
 let layer2Wallet: Layer2Wallet;
 let loopringClientService: LoopringClientService;
@@ -32,13 +32,13 @@ describe('Integration tests (require connection to a real service)', () => {
     layer2ProviderManager = Layer2Manager.Instance;
 
     // Obtain reference to the L2 provider.
-    provider = await layer2ProviderManager.getProviderByLayer2Type(
+    layer2Provider = await layer2ProviderManager.getProviderByLayer2Type(
       Layer2Type.LOOPRING,
       network
     );
 
     // Obtain layer-2 wallet builder.
-    layer2WalletBuilder = provider.getLayer2WalletBuilder();
+    layer2WalletBuilder = layer2Provider.getLayer2WalletBuilder();
 
     // Show how to obtain the ethers Signer.
     const ethersSigner = getMockedSigner(network);
@@ -47,14 +47,14 @@ describe('Integration tests (require connection to a real service)', () => {
     layer2Wallet = await layer2WalletBuilder.fromOptions({ ethersSigner });
 
     // Required expectations.
-    expect(provider.getSupportedLayer2Type()).toBe(Layer2Type.LOOPRING);
-    expect(provider.getName().length).toBeGreaterThan(0);
+    expect(layer2Provider.getSupportedLayer2Type()).toBe(Layer2Type.LOOPRING);
+    expect(layer2Provider.getName().length).toBeGreaterThan(0);
     expect(layer2Wallet).toBeTruthy();
   });
 
   afterAll(async () => {
-    if (provider) {
-      await provider.disconnect();
+    if (layer2Provider) {
+      await layer2Provider.disconnect();
     }
   });
 
@@ -62,7 +62,7 @@ describe('Integration tests (require connection to a real service)', () => {
   xit('Get collection of supported tokens', async () => {
     // Test Setup.
     // Method under test.
-    const supportedTokens = await provider.getSupportedTokens();
+    const supportedTokens = await layer2Provider.getSupportedTokens();
 
     // Expectations.
     // Expect it has some contents.
@@ -71,7 +71,7 @@ describe('Integration tests (require connection to a real service)', () => {
     expect(supportedTokens.has('ETH')).toBeTruthy();
   });
 
-  xit('Check deposit operation L1 -> L2', async () => {
+  xit('Do deposit operation L1 -> L2', async () => {
     // Test setup.
     // I am going to deposit to my own address in L2.
     const myAddress = layer2Wallet.getAddress();
@@ -79,15 +79,14 @@ describe('Integration tests (require connection to a real service)', () => {
     // Create Deposit data.
     const deposit = Deposit.createDeposit({
       toAddress: myAddress,
-      amount: '0.1', // Desired amount
+      amount: '1.2', // Desired amount
       fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
     });
 
     // Method under test. Perform DEPOSIT operation.
     const result = await layer2Wallet.deposit(deposit);
 
-    // The result object contains the necessary methods to obtain a receipt
-    // either Verified or non-verified. Verified takes long.
+    // The result object contains the necessary methods to obtain a receipt.
     const receipt = await result.getReceipt();
 
     // Expectations.
@@ -96,9 +95,27 @@ describe('Integration tests (require connection to a real service)', () => {
     expect(receipt.committed).toBeTruthy();
   });
 
+  xit('Register/update account EDDSA key', async () => {
+    const provider = layer2Provider as LoopringLayer2Provider;
+    const wallet = layer2Wallet as LoopringLayer2Wallet;
+    const clientService = wallet.getClientService();
+    const userInfo = await clientService.getUserInfo();
+
+    const nonce = userInfo.nonce as number;
+    expect(nonce).toBeTruthy();
+
+    const contractAddress = provider.getLoopringExchangeContractAddressByNetwork(
+      network
+    );
+    const newKeyPair = await clientService.getAccountKeyPair(
+      contractAddress,
+      nonce
+    );
+  });
+
   xit('Check account key generation used to sign REST API requests', async () => {
     // Test setup.
-    const loopringProvider = provider as LoopringLayer2Provider;
+    const loopringProvider = layer2Provider as LoopringLayer2Provider;
     const contractAddress = loopringProvider.getLoopringExchangeContractAddressByNetwork(
       network
     );

@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { UrlEddsaSignHelper } from './EddsaSignHelper';
 import { EdDSA } from './sign/eddsa';
 import { KeyPair } from './sign/types';
+import { Security } from './types';
 import assert from 'assert';
 
 export class LoopringClientService {
@@ -16,10 +17,27 @@ export class LoopringClientService {
     this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey);
   }
 
+  public async isL2Activated() {
+    try {
+      const userInfo = await this.getUserInfo();
+      if (!userInfo.publicKey.x || !userInfo.publicKey.y) {
+        // Public key has not been registered.
+        return false;
+      }
+
+      return true;
+    } catch {
+      // TODO: consider timeout/disconnection. Should rethrow in those cases.
+      return false;
+    }
+  }
+
   public async getAccountKeyPair(
     contractAddress: string,
     nonce: number
   ): Promise<KeyPair> {
+    // Source:
+    // https://medium.com/loopring-protocol/looprings-new-approach-to-generating-layer-2-account-keys-4a16cc334906
     const M = this.generateM(contractAddress, nonce);
     const S = await this.signer.signMessage(M);
 
@@ -101,6 +119,37 @@ export class LoopringClientService {
     return requestKey;
   }
 
+  public async updateAccountEcDSA(
+    keyPair: KeyPair,
+    exchangeContract: string,
+    accountId: number,
+    nonce: number
+  ) {
+    assert(!!this.urlEddsaSignHelper);
+
+    const request: AxiosRequestConfig = {
+      method: 'POST',
+      baseURL: this.host,
+      url: '/api/v3/account',
+      data: {
+        exchange: exchangeContract,
+        owner: this.signer.getAddress(),
+        accountId,
+        publicKey: {
+          x: keyPair.publicKeyX,
+          y: keyPair.publicKeyY,
+        },
+        maxFee: {
+          tokenId: '0',
+          volume: '1000000000000',
+        },
+        validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
+        nonce,
+        security: Security.ECDSA_AUTH,
+      },
+    };
+  }
+
   public async restInvoke(request: AxiosRequestConfig) {
     request.headers = {
       'Content-Type': 'application/json',
@@ -138,6 +187,8 @@ export class LoopringClientService {
   }
 
   private generateM(contractAddress: string, nonce: number): string {
+    // Source:
+    // https://medium.com/loopring-protocol/looprings-new-approach-to-generating-layer-2-account-keys-4a16cc334906
     const m = `Sign this message to access Loopring Exchange: ${contractAddress} with key nonce: ${nonce}`;
     return m;
   }
