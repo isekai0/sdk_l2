@@ -1,4 +1,4 @@
-import { TypedData, getMessage } from 'eip-712';
+import { TypedData, getMessage, getStructHash } from 'eip-712';
 
 type DomainData = {
   name?: string | undefined;
@@ -27,15 +27,30 @@ export class EIP712Helper {
     this.exchangeDomain = { name, version, chainId, verifyingContract };
   }
 
+  getExchangeDomainStructHash(): Buffer {
+    const typedData = this.createTypedData(
+      'EIP712Domain',
+      eip712Domain,
+      this.exchangeDomain
+    );
+
+    const structHash = getStructHash(typedData, 'EIP712Domain', this.exchangeDomain);
+
+    return structHash;
+  }
+
   createUpdateAccountMessage(req: Record<string, any>) {
     // TODO: encode public key
-    const publicKey = 0;
+    const publicKey = "61804618027797046811676702409463265798148663816854970963770902502721401224474";
+
+    // pt = Point(FQ(int(req['publicKey']['x'], 16)), FQ(int(req['publicKey']['y'], 16)))
+    // publicKey = int.from_bytes(pt.compress(), "little")
 
     const update = {
       owner: req['owner'],
       accountID: req['accountId'],
       feeTokenID: req['maxFee']['tokenId'],
-      maxFee: Number(req['maxFee']['volume']),
+      maxFee: req['maxFee']['volume'],
       publicKey: publicKey,
       validUntil: req['validUntil'],
       nonce: req['nonce'],
