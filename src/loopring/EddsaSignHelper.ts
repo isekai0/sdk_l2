@@ -1,20 +1,18 @@
 import { AxiosRequestConfig } from 'axios';
 import { sha256 } from 'js-sha256';
 import { EdDSA } from './sign/eddsa';
+import { bigInt } from 'snarkjs';
 import assert from 'assert';
 
-const bigInt = require('big-integer');
+import { SNARK_SCALAR_FIELD } from './consts';
+
 const poseidon = require('./sign/poseidon');
 const utf8 = require('utf8');
-
-const SNARK_SCALAR_FIELD = bigInt(
-  '21888242871839275222246405745257275088548364400416034343698204186575808495617'
-);
 
 export abstract class EddsaSignHelper {
   constructor(
     protected readonly poseidonHasher: any,
-    protected readonly privateKey: any
+    protected readonly privateKey: string
   ) {
     // Nothing else to initialize here.
   }
@@ -57,7 +55,7 @@ export abstract class EddsaSignHelper {
 }
 
 export class UrlEddsaSignHelper extends EddsaSignHelper {
-  constructor(privateKey: any, private host?: string) {
+  constructor(privateKey: string, private host: string) {
     super(poseidon.createHash(2, 6, 53), privateKey);
   }
 
@@ -65,7 +63,7 @@ export class UrlEddsaSignHelper extends EddsaSignHelper {
     const serializedData = this.serializeData(structureData);
     const hasher = sha256.create();
     hasher.update(utf8.encode(serializedData));
-    const hashValue = bigInt(hasher.hex(), 16).mod(SNARK_SCALAR_FIELD);
+    const hashValue = bigInt(`0x${hasher.hex()}`, 16).mod(SNARK_SCALAR_FIELD);
     const msgHash = `0x${hashValue.toString(16)}`;
     return msgHash;
   }

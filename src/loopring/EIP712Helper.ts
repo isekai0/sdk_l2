@@ -1,4 +1,9 @@
 import { TypedData, getMessage, getStructHash } from 'eip-712';
+import { bigInt } from 'snarkjs';
+import { SNARK_SCALAR_FIELD } from './consts';
+import { UpdateAccountMessageRequest } from './types';
+
+const babyjub = require('./sign/babyjub');
 
 type DomainData = {
   name?: string | undefined;
@@ -34,26 +39,28 @@ export class EIP712Helper {
       this.exchangeDomain
     );
 
-    const structHash = getStructHash(typedData, 'EIP712Domain', this.exchangeDomain);
+    const structHash = getStructHash(
+      typedData,
+      'EIP712Domain',
+      this.exchangeDomain
+    );
 
     return structHash;
   }
 
-  createUpdateAccountMessage(req: Record<string, any>) {
-    // TODO: encode public key
-    const publicKey = "61804618027797046811676702409463265798148663816854970963770902502721401224474";
-
-    // pt = Point(FQ(int(req['publicKey']['x'], 16)), FQ(int(req['publicKey']['y'], 16)))
-    // publicKey = int.from_bytes(pt.compress(), "little")
+  createUpdateAccountMessage(req: UpdateAccountMessageRequest) {
+    const px = bigInt(req.publicKey.x, 16).mod(SNARK_SCALAR_FIELD);
+    const py = bigInt(req.publicKey.y, 16).mod(SNARK_SCALAR_FIELD);
+    const publicKey = bigInt.leBuff2int(babyjub.packPoint([px, py]));
 
     const update = {
-      owner: req['owner'],
-      accountID: req['accountId'],
-      feeTokenID: req['maxFee']['tokenId'],
-      maxFee: req['maxFee']['volume'],
-      publicKey: publicKey,
-      validUntil: req['validUntil'],
-      nonce: req['nonce'],
+      owner: req.owner,
+      accountID: req.accountId,
+      feeTokenID: req.maxFee.tokenId,
+      maxFee: req.maxFee.volume,
+      publicKey,
+      validUntil: req.validUntil,
+      nonce: req.nonce,
     };
 
     const typedData = this.createTypedData(

@@ -12,3 +12,21 @@ export enum Security {
   API_KEY = 2,
   ECDSA_AUTH = 4,
 }
+
+type HexString = string;
+
+export type UpdateAccountMessageRequest = {
+  exchange: HexString;
+  owner: HexString;
+  accountId: number;
+  publicKey: {
+    x: HexString;
+    y: HexString;
+  };
+  maxFee: {
+    tokenId: number;
+    volume: string;
+  };
+  validUntil: number;
+  nonce: number;
+};

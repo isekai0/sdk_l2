@@ -3,18 +3,20 @@ import { ethers } from 'ethers';
 import { UrlEddsaSignHelper } from './EddsaSignHelper';
 import { EdDSA } from './sign/eddsa';
 import { KeyPair } from './sign/types';
-import { Security } from './types';
+import { Security, UpdateAccountMessageRequest } from './types';
 import assert from 'assert';
+import { EIP712Helper } from './EIP712Helper';
 
 export class LoopringClientService {
   private urlEddsaSignHelper: UrlEddsaSignHelper | undefined;
+  private eip712Helper: EIP712Helper | undefined;
 
   constructor(private signer: ethers.Signer, private host: string) {
     // constructor's placeholder.
   }
 
-  public initUrlSignHelper(privateKey: any) {
-    this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey);
+  public initUrlSignHelper(privateKey: string) {
+    this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey, this.host);
   }
 
   public async isL2Activated() {
@@ -127,24 +129,40 @@ export class LoopringClientService {
   ) {
     assert(!!this.urlEddsaSignHelper);
 
+    const owner = await this.signer.getAddress();
+
+    const updateAccountRequest: UpdateAccountMessageRequest = {
+      exchange: exchangeContract,
+      owner,
+      accountId,
+      publicKey: {
+        x: keyPair.publicKeyX,
+        y: keyPair.publicKeyY,
+      },
+      maxFee: {
+        tokenId: 0, // always ETH
+        volume: '0',
+      },
+      validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
+      nonce,
+    };
+
+    // TODO: FIXME
+    const message = this.eip712Helper!.createUpdateAccountMessage(
+      updateAccountRequest
+    );
+    const xApiSig = this.signer.signMessage(message); //  + EthSignType.EIP_712 start with 0x
+
     const request: AxiosRequestConfig = {
       method: 'POST',
+      headers: {
+        'X-API-SIG': xApiSig,
+        ecdsaSignature: xApiSig,
+      },
       baseURL: this.host,
       url: '/api/v3/account',
       data: {
-        exchange: exchangeContract,
-        owner: this.signer.getAddress(),
-        accountId,
-        publicKey: {
-          x: keyPair.publicKeyX,
-          y: keyPair.publicKeyY,
-        },
-        maxFee: {
-          tokenId: '0',
-          volume: '1000000000000',
-        },
-        validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
-        nonce,
+        ...updateAccountRequest,
         security: Security.ECDSA_AUTH,
       },
     };
