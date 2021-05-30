@@ -64,10 +64,15 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
 
     const host = loopringProvider.getLoopringHostByNetwork(network);
 
+    const domainData = loopringProvider.getLoopringTypedDataDomainByNetwork(
+      network
+    );
+
     // Instantiate off-chain request client.
     const clientService = new LoopringClientService(
       walletOptions.ethersSigner,
-      host
+      host,
+      domainData
     );
     walletOptions.isActivated = await clientService.isL2Activated();
 

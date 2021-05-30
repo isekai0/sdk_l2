@@ -12,6 +12,11 @@ import { Deposit } from '../src/Operation';
 
 import { ethers } from 'ethers';
 import { AxiosRequestConfig } from 'axios';
+import {
+  EthSignType,
+  UpdateAccountMessageRequest,
+} from '../src/loopring/types';
+import { EIP712Helper } from '../src/loopring/EIP712Helper';
 
 require('dotenv').config();
 
@@ -111,6 +116,61 @@ describe('Integration tests (require connection to a real service)', () => {
       contractAddress,
       nonce
     );
+
+    const accountId = userInfo.accountId;
+
+    // Method under test.
+    await clientService.updateAccountEcDSA(newKeyPair, accountId, nonce + 1);
+  });
+
+  xit('update_account_ecdsa_sig_uat', async () => {
+    const domainData = {
+      name: 'Loopring Protocol',
+      version: '3.6.0',
+      chainId: 1337,
+      verifyingContract: '0x7489DE8c7C1Ee35101196ec650931D7bef9FdAD2',
+    };
+
+    const eip712Helper = new EIP712Helper(domainData);
+
+    const req: UpdateAccountMessageRequest = {
+      exchange: '0x7489DE8c7C1Ee35101196ec650931D7bef9FdAD2',
+      owner: '0x23a51c5f860527f971d0587d130c64536256040d',
+      accountId: 10004,
+      publicKey: {
+        x: '0x2442c9e22d221abac0582cf764028d21114c9676b743f590741ffdf1f8a735ca',
+        y: '0x08a42c954bc114b967bdd77cf7a1780e07fe10a4ebbef00b567ef2876e997d1a',
+      },
+      maxFee: {
+        tokenId: 0,
+        volume: '4000000000000000',
+      },
+      validUntil: 1_700_000_000,
+      nonce: 1,
+    };
+
+    function bufferToHex(buffer: Uint8Array) {
+      return [...new Uint8Array(buffer)]
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    const hash = eip712Helper.createUpdateAccountMessage(req);
+    const hashHex = `0x${bufferToHex(hash)}`;
+
+    expect(hashHex).toBe(
+      '0x031fac4223887173ca741460e3b1e642d9d73371a64cd42b46212cc159877f03'
+    );
+
+    const ethersSigner = getMockedSigner(network);
+
+    const typedData = eip712Helper.createUpdateAccountTypedData(req);
+    const xApiSig = await eip712Helper.signTypedData(typedData, ethersSigner);
+
+    expect(xApiSig).toBe(
+      '0x1d5c8314893ce0ceccf0b872758ef8f1e5096a6383fe2729686f18396f6e2bcd47ab43819446d0422f700763f51a4221bb28c7e69b6a6b6f44fb351d5a9cd0c21b' +
+        EthSignType.EIP_712
+    );
   });
 
   xit('Check account key generation used to sign REST API requests', async () => {
@@ -150,7 +210,7 @@ describe('Integration tests (require connection to a real service)', () => {
 });
 
 // Utility functions
-function getMockedSigner(network: Network): ethers.Signer {
+function getMockedSigner(network: Network): ethers.Wallet {
   // TODO: See what's going on here.
   const ethers = require('ethers');
 

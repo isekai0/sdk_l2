@@ -1,21 +1,33 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { ethers } from 'ethers';
+import assert from 'assert';
+
 import { UrlEddsaSignHelper } from './EddsaSignHelper';
 import { EdDSA } from './sign/eddsa';
 import { KeyPair } from './sign/types';
-import { Security, UpdateAccountMessageRequest } from './types';
-import assert from 'assert';
+import {
+  TypedDataDomain,
+  Security,
+  UpdateAccountMessageRequest,
+} from './types';
 import { EIP712Helper } from './EIP712Helper';
 
 export class LoopringClientService {
   private urlEddsaSignHelper: UrlEddsaSignHelper | undefined;
-  private eip712Helper: EIP712Helper | undefined;
+  private eip712Helper: EIP712Helper;
 
-  constructor(private signer: ethers.Signer, private host: string) {
-    // constructor's placeholder.
+  constructor(
+    private signer: ethers.Wallet,
+    private host: string,
+    private domainData: TypedDataDomain
+  ) {
+    this.eip712Helper = new EIP712Helper(this.domainData);
   }
 
   public initUrlSignHelper(privateKey: string) {
+    // Note that the EddsaSignHelper(s) are not eagerly instantiated because
+    // a wallet signature is needed. Such signature may involve user interaction
+    // at inappropriate times.
     this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey, this.host);
   }
 
@@ -123,12 +135,12 @@ export class LoopringClientService {
 
   public async updateAccountEcDSA(
     keyPair: KeyPair,
-    exchangeContract: string,
     accountId: number,
     nonce: number
   ) {
-    assert(!!this.urlEddsaSignHelper);
+    assert(!!this.domainData.verifyingContract);
 
+    const exchangeContract: string = this.domainData.verifyingContract;
     const owner = await this.signer.getAddress();
 
     const updateAccountRequest: UpdateAccountMessageRequest = {
@@ -136,22 +148,26 @@ export class LoopringClientService {
       owner,
       accountId,
       publicKey: {
-        x: keyPair.publicKeyX,
-        y: keyPair.publicKeyY,
+        x: this.xpad64(keyPair.publicKeyX),
+        y: this.xpad64(keyPair.publicKeyY),
       },
       maxFee: {
         tokenId: 0, // always ETH
         volume: '0',
       },
       validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
+      // TODO: remove once finished testing.
+      // validUntil: 1700000000, TODO: remove once finished testing.
       nonce,
     };
 
-    // TODO: FIXME
-    const message = this.eip712Helper!.createUpdateAccountMessage(
+    const typedData = this.eip712Helper.createUpdateAccountTypedData(
       updateAccountRequest
     );
-    const xApiSig = this.signer.signMessage(message); //  + EthSignType.EIP_712 start with 0x
+    const xApiSig: string = await this.eip712Helper.signTypedData(
+      typedData,
+      this.signer
+    );
 
     const request: AxiosRequestConfig = {
       method: 'POST',
@@ -166,6 +182,14 @@ export class LoopringClientService {
         security: Security.ECDSA_AUTH,
       },
     };
+
+    try {
+      const responseData = await this.restInvoke(request);
+      console.log(responseData);
+    } catch (err) {
+      console.log(err.response.data.resultInfo);
+      throw err;
+    }
   }
 
   public async restInvoke(request: AxiosRequestConfig) {
@@ -220,5 +244,12 @@ export class LoopringClientService {
     const ret = new Array(width - s.length + 1).join('0') + s;
 
     return ret;
+  }
+
+  private xpad64(hex: string): string {
+    if (hex.startsWith('0x')) {
+      return `0x${this.pad64(hex.substring(2))}`;
+    }
+    return this.pad64(hex);
   }
 }

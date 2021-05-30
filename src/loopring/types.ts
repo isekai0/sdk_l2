@@ -1,7 +1,7 @@
 import ethers from 'ethers';
 
 export interface LoopringWalletOptions {
-  ethersSigner: ethers.Signer;
+  ethersSigner: ethers.Wallet;
   isActivated?: boolean;
   offchainSignKey?: string;
 }
@@ -12,6 +12,37 @@ export enum Security {
   API_KEY = 2,
   ECDSA_AUTH = 4,
 }
+
+export enum EthSignType {
+  ILLEGAL = '00',
+  INVALID = '01',
+  EIP_712 = '02',
+  ETH_SIGN = '03',
+}
+
+export type NetworkInfo = {
+  offchainApiEndpoint: string;
+  domainData: TypedDataDomain;
+};
+
+export type TypedDataDomain = {
+  name?: string | undefined;
+  version?: string | undefined;
+  chainId?: string | number | undefined;
+  verifyingContract?: string | undefined;
+  salt?: string | number[] | undefined;
+};
+
+export type TypedDataField = {
+  name: string;
+  type: string;
+};
+
+export type SimplifiedTypedData = {
+  domain: TypedDataDomain;
+  types: Record<string, TypedDataField[]>;
+  message: Record<string, any>;
+};
 
 type HexString = string;
 

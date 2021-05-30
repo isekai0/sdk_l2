@@ -2,9 +2,8 @@ import { Layer2Provider } from 'Layer2Provider';
 import { Layer2Type, Receipt, Network } from '../types';
 import { LoopringLayer2WalletBuilder } from './LoopringLayer2WalletBuilder';
 import { Layer2WalletBuilder } from 'Layer2WalletBuilder';
-import { Security } from './types';
-import axios, { AxiosRequestConfig } from 'axios';
-import { ethers } from 'ethers';
+import { TypedDataDomain, NetworkInfo, Security } from './types';
+import axios from 'axios';
 
 export async function getLoopringProvider(
   network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet' | 'goerli'
@@ -116,7 +115,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
   }
 
   getLoopringHostByNetwork(network: Network) {
-    const ret = this.LOOPRING_INFO_BY_NETWORK[network][0];
+    const ret = this.LOOPRING_INFO_BY_NETWORK[network].offchainApiEndpoint;
     if (!ret) {
       throw new Error(`Network ${network} not supported`);
     }
@@ -124,7 +123,16 @@ export class LoopringLayer2Provider implements Layer2Provider {
   }
 
   getLoopringExchangeContractAddressByNetwork(network: Network): string {
-    const ret = this.LOOPRING_INFO_BY_NETWORK[network][1];
+    const ret = this.LOOPRING_INFO_BY_NETWORK[network].domainData
+      .verifyingContract;
+    if (!ret) {
+      throw new Error(`Network ${network} not supported`);
+    }
+    return ret;
+  }
+
+  getLoopringTypedDataDomainByNetwork(network: Network): TypedDataDomain {
+    const ret = this.LOOPRING_INFO_BY_NETWORK[network].domainData;
     if (!ret) {
       throw new Error(`Network ${network} not supported`);
     }
@@ -180,22 +188,61 @@ export class LoopringLayer2Provider implements Layer2Provider {
     return response.data;
   }
 
-  private LOOPRING_INFO_BY_NETWORK: Record<Network, string[]> = {
-    localhost: ['', ''],
-    rinkeby: ['', ''],
-    ropsten: ['', ''],
-    mainnet: [
-      'https://api3.loopring.io',
-      '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
-    ],
-    goerli: [
-      'https://uat2.loopring.io',
-      '0x2e76EBd1c7c0C8e7c2B875b6d505a260C525d25e',
-    ],
+  private LOOPRING_INFO_BY_NETWORK: Record<Network, NetworkInfo> = {
+    localhost: {
+      offchainApiEndpoint: '',
+      domainData: {
+        name: undefined,
+        version: undefined,
+        chainId: undefined, // TODO: confirm
+        verifyingContract: undefined,
+      },
+    },
+    rinkeby: {
+      offchainApiEndpoint: '',
+      domainData: {
+        name: undefined,
+        version: undefined,
+        chainId: undefined, // TODO: confirm
+        verifyingContract: undefined,
+      },
+    },
+    ropsten: {
+      offchainApiEndpoint: '',
+      domainData: {
+        name: undefined,
+        version: undefined,
+        chainId: undefined, // TODO: confirm
+        verifyingContract: undefined,
+      },
+    },
+    mainnet: {
+      offchainApiEndpoint: 'https://api3.loopring.io',
+      domainData: {
+        name: 'Loopring Protocol',
+        version: '3.6.0',
+        chainId: 5, // TODO: confirm
+        verifyingContract: '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
+      },
+    },
+    goerli: {
+      offchainApiEndpoint: 'https://uat2.loopring.io',
+      domainData: {
+        name: 'Loopring Protocol',
+        version: '3.6.0',
+        chainId: 1, // TODO: confirm
+        verifyingContract: '0x2e76EBd1c7c0C8e7c2B875b6d505a260C525d25e',
+      },
+    },
     // 'homestead' is being as synonym for 'mainnet'.
-    homestead: [
-      'https://api3.loopring.io',
-      '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
-    ],
+    homestead: {
+      offchainApiEndpoint: 'https://api3.loopring.io',
+      domainData: {
+        name: 'Loopring Protocol',
+        version: '3.6.0',
+        chainId: 5, // TODO: confirm
+        verifyingContract: '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
+      },
+    },
   };
 }

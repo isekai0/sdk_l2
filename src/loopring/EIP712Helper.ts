@@ -1,17 +1,17 @@
-import { TypedData, getMessage, getStructHash } from 'eip-712';
+import { TypedData, getMessage, getStructHash, getDependencies } from 'eip-712';
+import { ethers } from 'ethers';
 import { bigInt } from 'snarkjs';
 import { SNARK_SCALAR_FIELD } from './consts';
-import { UpdateAccountMessageRequest } from './types';
+import {
+  EthSignType,
+  SimplifiedTypedData,
+  TypedDataDomain,
+  TypedDataField,
+  UpdateAccountMessageRequest,
+} from './types';
 
 const babyjub = require('./sign/babyjub');
 
-type DomainData = {
-  name?: string | undefined;
-  version?: string | undefined;
-  chainId?: string | number | undefined;
-  verifyingContract?: string | undefined;
-  salt?: string | number[] | undefined;
-};
 type NameTypeArray = { name: string; type: string }[];
 
 const eip712Domain: NameTypeArray = [
@@ -22,14 +22,14 @@ const eip712Domain: NameTypeArray = [
 ];
 
 export class EIP712Helper {
-  private exchangeDomain: DomainData;
-  constructor(
-    name: string,
-    version: string,
-    chainId: number,
-    verifyingContract: string
-  ) {
-    this.exchangeDomain = { name, version, chainId, verifyingContract };
+  constructor(private exchangeDomain: TypedDataDomain) {
+    // Constructor placeholder.
+  }
+
+  async signTypedData(typedData: TypedData, signer: ethers.Wallet) {
+    const { domain, types, message } = this.simplifyTypedData(typedData);
+    const signature = await signer._signTypedData(domain, types, message);
+    return signature + EthSignType.EIP_712;
   }
 
   getExchangeDomainStructHash(): Buffer {
@@ -48,7 +48,9 @@ export class EIP712Helper {
     return structHash;
   }
 
-  createUpdateAccountMessage(req: UpdateAccountMessageRequest) {
+  createUpdateAccountTypedData(req: UpdateAccountMessageRequest): TypedData {
+    const primaryType = 'AccountUpdate';
+
     const px = bigInt(req.publicKey.x, 16).mod(SNARK_SCALAR_FIELD);
     const py = bigInt(req.publicKey.y, 16).mod(SNARK_SCALAR_FIELD);
     const publicKey = bigInt.leBuff2int(babyjub.packPoint([px, py]));
@@ -64,7 +66,7 @@ export class EIP712Helper {
     };
 
     const typedData = this.createTypedData(
-      'AccountUpdate',
+      primaryType,
       [
         { name: 'owner', type: 'address' },
         { name: 'accountID', type: 'uint32' },
@@ -77,10 +79,28 @@ export class EIP712Helper {
       update
     );
 
+    return typedData;
+  }
+
+  createUpdateAccountMessage(req: UpdateAccountMessageRequest): Buffer {
+    const typedData = this.createUpdateAccountTypedData(req);
+
     // Set hash argument to true, so the message is returned as a hash.
     const message = getMessage(typedData, true);
 
     return message;
+  }
+
+  public simplifyTypedData(typedData: TypedData): SimplifiedTypedData {
+    const deps = getDependencies(typedData, typedData.primaryType);
+
+    const ret: SimplifiedTypedData = {
+      domain: typedData.domain,
+      types: this.filterTypes(typedData.types, deps),
+      message: typedData.message,
+    };
+
+    return ret;
   }
 
   private createTypedData(
@@ -99,5 +119,16 @@ export class EIP712Helper {
     };
 
     return typedData;
+  }
+
+  private filterTypes(types: Record<string, TypedDataField[]>, keys: string[]) {
+    const filtered = Object.keys(types)
+      .filter((key) => keys.includes(key))
+      .reduce((accum: Record<string, TypedDataField[]>, key: string) => {
+        accum[key] = types[key];
+        return accum;
+      }, {});
+
+    return filtered;
   }
 }

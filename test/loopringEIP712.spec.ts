@@ -5,16 +5,14 @@ require('dotenv').config();
 
 describe('EIP712 correctness tests', () => {
   it('domain_separator', async () => {
-    const name = 'Loopring Protocol';
-    const version = '3.6.0';
-    const chainId = 5;
-    const verifyingContract = '0x2FFfAa5D860B39b28467863a4454EE874127eF5E';
-    const eip712Helper = new EIP712Helper(
-      name,
-      version,
-      chainId,
-      verifyingContract
-    );
+    const domainData = {
+      name: 'Loopring Protocol',
+      version: '3.6.0',
+      chainId: 5,
+      verifyingContract: '0x2FFfAa5D860B39b28467863a4454EE874127eF5E',
+    };
+
+    const eip712Helper = new EIP712Helper(domainData);
 
     const structHash = eip712Helper.getExchangeDomainStructHash();
     const structHashHex = `0x${bufferToHex(structHash)}`;
@@ -25,16 +23,14 @@ describe('EIP712 correctness tests', () => {
   });
 
   it('update_account_ecdsa_sig_uat', async () => {
-    const name = 'Loopring Protocol';
-    const version = '3.6.0';
-    const chainId = 1337;
-    const verifyingContract = '0x7489DE8c7C1Ee35101196ec650931D7bef9FdAD2';
-    const eip712Helper = new EIP712Helper(
-      name,
-      version,
-      chainId,
-      verifyingContract
-    );
+    const domainData = {
+      name: 'Loopring Protocol',
+      version: '3.6.0',
+      chainId: 1337,
+      verifyingContract: '0x7489DE8c7C1Ee35101196ec650931D7bef9FdAD2',
+    };
+
+    const eip712Helper = new EIP712Helper(domainData);
 
     const req: UpdateAccountMessageRequest = {
       exchange: '0x7489DE8c7C1Ee35101196ec650931D7bef9FdAD2',
