@@ -20,28 +20,27 @@ import {
 } from '../types';
 import { LoopringResult } from './LoopringResult';
 import { LoopringClientService } from './LoopringClientService';
+import { LoopringWalletOptions } from './types';
 
 export class LoopringLayer2Wallet implements Layer2Wallet {
   private static readonly DEFAULT_GAS_LIMIT = 300_000;
 
   private readonly accountStream: AccountStream;
   private readonly exchangeContract: ethers.Contract;
-  private readonly clientService: LoopringClientService;
-  private readonly host: string;
+
+  // This field is lazily initialized.
+  private offchainApiKey: string | undefined = undefined;
 
   private constructor(
     private readonly network: Network,
-    private readonly ethersSigner: ethers.Signer,
+    private readonly host: string,
+    private readonly walletOptions: LoopringWalletOptions,
     private readonly address: string,
     private readonly loopringProvider: LoopringLayer2Provider,
+    private readonly clientService: LoopringClientService,
     private readonly tokenDataBySymbol: TokenDataDict
   ) {
     this.accountStream = new AccountStream(this);
-    this.host = this.loopringProvider.getLoopringHostByNetwork(this.network);
-    this.clientService = new LoopringClientService(
-      this.ethersSigner,
-      this.host
-    );
 
     // Instantiate Loopring exchange address contract.
     const contractAddress = loopringProvider.getLoopringExchangeContractAddressByNetwork(
@@ -50,34 +49,45 @@ export class LoopringLayer2Wallet implements Layer2Wallet {
     this.exchangeContract = new ethers.Contract(
       contractAddress,
       ExchangeV3Abi,
-      ethersSigner
+      walletOptions.ethersSigner
     );
   }
 
   static async newInstance(
     network: Network,
-    ethersSigner: ethers.Signer,
+    walletOptions: LoopringWalletOptions,
     loopringProvider: LoopringLayer2Provider
   ): Promise<LoopringLayer2Wallet> {
     // Load Loopring ExchangeV3 ABI.
-    const address = await ethersSigner.getAddress();
+    const address = await walletOptions.ethersSigner.getAddress();
     const tokenDataBySymbol = await loopringProvider.getTokenDataBySymbol();
+
+    const host = loopringProvider.getLoopringHostByNetwork(network);
+
+    const domainData = loopringProvider.getLoopringTypedDataDomainByNetwork(
+      network
+    );
+
+    // Instantiate off-chain request client.
+    const clientService = new LoopringClientService(
+      walletOptions.ethersSigner,
+      host,
+      domainData
+    );
+    walletOptions.isActivated = await clientService.isL2Activated();
+
     // Create promise for new instance.
-    return new Promise((resolve, reject) => {
-      try {
-        resolve(
-          new LoopringLayer2Wallet(
-            network,
-            ethersSigner,
-            address,
-            loopringProvider,
-            tokenDataBySymbol!
-          )
-        );
-      } catch (err) {
-        reject(err);
-      }
-    });
+    const layer2Wallet = new LoopringLayer2Wallet(
+      network,
+      host,
+      walletOptions,
+      address,
+      loopringProvider,
+      clientService,
+      tokenDataBySymbol!
+    );
+
+    return layer2Wallet;
   }
 
   getNetwork(): Network {

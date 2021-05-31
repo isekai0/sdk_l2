@@ -1,25 +1,57 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { ethers } from 'ethers';
+import assert from 'assert';
+
 import { UrlEddsaSignHelper } from './EddsaSignHelper';
 import { EdDSA } from './sign/eddsa';
 import { KeyPair } from './sign/types';
-import assert from 'assert';
+import {
+  TypedDataDomain,
+  UpdateAccountMessageRequest,
+  WeiFeeInfo,
+} from './types';
+import { EIP712Helper } from './EIP712Helper';
 
 export class LoopringClientService {
   private urlEddsaSignHelper: UrlEddsaSignHelper | undefined;
+  private eip712Helper: EIP712Helper;
 
-  constructor(private signer: ethers.Signer, private host: string) {
-    // constructor's placeholder.
+  constructor(
+    private signer: ethers.Wallet,
+    private host: string,
+    private domainData: TypedDataDomain
+  ) {
+    this.eip712Helper = new EIP712Helper(this.domainData);
   }
 
-  public initUrlSignHelper(privateKey: any) {
-    this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey);
+  public initUrlSignHelper(privateKey: string) {
+    // Note that the EddsaSignHelper(s) are not eagerly instantiated because
+    // a wallet signature is needed. Such signature may involve user interaction
+    // at inappropriate times.
+    this.urlEddsaSignHelper = new UrlEddsaSignHelper(privateKey, this.host);
+  }
+
+  public async isL2Activated() {
+    try {
+      const userInfo = await this.getUserInfo();
+      if (!userInfo.publicKey.x || !userInfo.publicKey.y) {
+        // Public key has not been registered.
+        return false;
+      }
+
+      return true;
+    } catch {
+      // TODO: consider timeout/disconnection. Should rethrow in those cases.
+      return false;
+    }
   }
 
   public async getAccountKeyPair(
     contractAddress: string,
     nonce: number
   ): Promise<KeyPair> {
+    // Source:
+    // https://medium.com/loopring-protocol/looprings-new-approach-to-generating-layer-2-account-keys-4a16cc334906
     const M = this.generateM(contractAddress, nonce);
     const S = await this.signer.signMessage(M);
 
@@ -101,6 +133,60 @@ export class LoopringClientService {
     return requestKey;
   }
 
+  public async updateAccountEcDSA(
+    keyPair: KeyPair,
+    accountId: number,
+    nonce: number,
+    maxFee: WeiFeeInfo
+  ) {
+    assert(!!this.domainData.verifyingContract);
+
+    const exchangeContract: string = this.domainData.verifyingContract;
+    const owner = await this.signer.getAddress();
+
+    const updateAccountRequest: UpdateAccountMessageRequest = {
+      exchange: exchangeContract,
+      owner,
+      accountId,
+      publicKey: {
+        x: this.xpad64(keyPair.publicKeyX),
+        y: this.xpad64(keyPair.publicKeyY),
+      },
+      maxFee,
+      validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
+      nonce,
+    };
+
+    const typedData = this.eip712Helper.createUpdateAccountTypedData(
+      updateAccountRequest
+    );
+    const xApiSig: string = await this.eip712Helper.signTypedData(
+      typedData,
+      this.signer
+    );
+
+    const request: AxiosRequestConfig = {
+      method: 'POST',
+      headers: {
+        'X-API-SIG': xApiSig,
+      },
+      baseURL: this.host,
+      url: '/api/v3/account',
+      data: {
+        ...updateAccountRequest,
+        'X-API-SIG': xApiSig,
+        ecdsaSignature: xApiSig,
+      },
+    };
+
+    try {
+      const responseData = await this.restInvoke(request);
+    } catch (err) {
+      console.log(err.response.data.resultInfo);
+      throw err;
+    }
+  }
+
   public async restInvoke(request: AxiosRequestConfig) {
     request.headers = {
       'Content-Type': 'application/json',
@@ -138,6 +224,8 @@ export class LoopringClientService {
   }
 
   private generateM(contractAddress: string, nonce: number): string {
+    // Source:
+    // https://medium.com/loopring-protocol/looprings-new-approach-to-generating-layer-2-account-keys-4a16cc334906
     const m = `Sign this message to access Loopring Exchange: ${contractAddress} with key nonce: ${nonce}`;
     return m;
   }
@@ -151,5 +239,12 @@ export class LoopringClientService {
     const ret = new Array(width - s.length + 1).join('0') + s;
 
     return ret;
+  }
+
+  private xpad64(hex: string): string {
+    if (hex.startsWith('0x')) {
+      return `0x${this.pad64(hex.substring(2))}`;
+    }
+    return this.pad64(hex);
   }
 }

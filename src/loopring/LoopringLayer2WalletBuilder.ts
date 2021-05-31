@@ -1,10 +1,9 @@
-import ethers from 'ethers';
-
 import { Layer2WalletBuilder } from '../Layer2WalletBuilder';
 import { Layer2Wallet } from '../Layer2Wallet';
 import { Network } from '../types';
 import { LoopringLayer2Provider } from './LoopringLayer2Provider';
 import { LoopringLayer2Wallet } from './LoopringLayer2Wallet';
+import { LoopringWalletOptions } from './types';
 
 export class LoopringLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
@@ -26,27 +25,27 @@ export class LoopringLayer2WalletBuilder implements Layer2WalletBuilder {
     // Create an ethers wallet from the provided mnemonics.
     const ethWallet = ethers.Wallet.fromMnemonic(words).connect(ethersProvider);
 
+    const walletOptions: LoopringWalletOptions = {
+      ethersSigner: ethWallet,
+    };
+
     // Instantiate the layer 2 wallet.
     const layer2Wallet = LoopringLayer2Wallet.newInstance(
       this.network,
-      ethWallet,
+      walletOptions,
       this.layer2Provider
     );
 
     return layer2Wallet;
   }
 
-  async fromOptions({
-    ethersSigner,
-  }: {
-    [ethersSigner: string]: ethers.Signer;
-  }): Promise<Layer2Wallet> {
+  async fromOptions(options: LoopringWalletOptions): Promise<Layer2Wallet> {
     // Check that the ethers signer has an assigned provider.
-    if (!ethersSigner.provider) {
+    if (!options.ethersSigner.provider) {
       throw new Error('Undefined ethers provider');
     }
 
-    const etherNetwork = await ethersSigner.provider.getNetwork();
+    const etherNetwork = await options.ethersSigner.provider.getNetwork();
     if (!this.sameNetwork(etherNetwork.name, this.network)) {
       throw new Error(
         `Ethers lib signer has the wrong network ${etherNetwork.name} != ${this.network}`
@@ -56,7 +55,7 @@ export class LoopringLayer2WalletBuilder implements Layer2WalletBuilder {
     // Instantiate the layer 2 wallet.
     const layer2Wallet = LoopringLayer2Wallet.newInstance(
       this.network,
-      ethersSigner,
+      options,
       this.layer2Provider
     );
 
