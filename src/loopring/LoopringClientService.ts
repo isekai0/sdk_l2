@@ -7,8 +7,8 @@ import { EdDSA } from './sign/eddsa';
 import { KeyPair } from './sign/types';
 import {
   TypedDataDomain,
-  Security,
   UpdateAccountMessageRequest,
+  WeiFeeInfo,
 } from './types';
 import { EIP712Helper } from './EIP712Helper';
 
@@ -136,7 +136,8 @@ export class LoopringClientService {
   public async updateAccountEcDSA(
     keyPair: KeyPair,
     accountId: number,
-    nonce: number
+    nonce: number,
+    maxFee: WeiFeeInfo
   ) {
     assert(!!this.domainData.verifyingContract);
 
@@ -151,13 +152,8 @@ export class LoopringClientService {
         x: this.xpad64(keyPair.publicKeyX),
         y: this.xpad64(keyPair.publicKeyY),
       },
-      maxFee: {
-        tokenId: 0, // always ETH
-        volume: '0',
-      },
+      maxFee,
       validUntil: 1922227200, // Date and time (GMT): Saturday, November 30, 2030 12:00:00 AM
-      // TODO: remove once finished testing.
-      // validUntil: 1700000000, TODO: remove once finished testing.
       nonce,
     };
 
@@ -173,19 +169,18 @@ export class LoopringClientService {
       method: 'POST',
       headers: {
         'X-API-SIG': xApiSig,
-        ecdsaSignature: xApiSig,
       },
       baseURL: this.host,
       url: '/api/v3/account',
       data: {
         ...updateAccountRequest,
-        security: Security.ECDSA_AUTH,
+        'X-API-SIG': xApiSig,
+        ecdsaSignature: xApiSig,
       },
     };
 
     try {
       const responseData = await this.restInvoke(request);
-      console.log(responseData);
     } catch (err) {
       console.log(err.response.data.resultInfo);
       throw err;

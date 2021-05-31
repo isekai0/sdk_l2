@@ -1,19 +1,17 @@
+import { ethers, BigNumber } from 'ethers';
+
 import { Network, OperationType, Layer2Type } from '../src/types';
+import { Deposit } from '../src/Operation';
 import { Layer2Manager } from '../src/Layer2Manager';
 import { Layer2Provider } from '../src/Layer2Provider';
 import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
 import { Layer2Wallet } from '../src/Layer2Wallet';
-import { LoopringClientService } from '../src/loopring/LoopringClientService';
+
 import { LoopringLayer2Provider } from '../src/loopring/LoopringLayer2Provider';
 import { LoopringLayer2Wallet } from '../src/loopring/LoopringLayer2Wallet';
-import { UrlEddsaSignHelper } from '../src/loopring/EddsaSignHelper';
-
-import { Deposit } from '../src/Operation';
-
-import { ethers } from 'ethers';
-import { AxiosRequestConfig } from 'axios';
 import {
   EthSignType,
+  WeiFeeInfo,
   UpdateAccountMessageRequest,
 } from '../src/loopring/types';
 import { EIP712Helper } from '../src/loopring/EIP712Helper';
@@ -29,7 +27,6 @@ let layer2ProviderManager: Layer2Manager;
 let layer2Provider: Layer2Provider;
 let layer2WalletBuilder: Layer2WalletBuilder;
 let layer2Wallet: Layer2Wallet;
-let loopringClientService: LoopringClientService;
 
 describe('Integration tests (require connection to a real service)', () => {
   // Common setup.
@@ -101,6 +98,7 @@ describe('Integration tests (require connection to a real service)', () => {
   });
 
   xit('Register/update account EDDSA key', async () => {
+    // Test setup.
     const provider = layer2Provider as LoopringLayer2Provider;
     const wallet = layer2Wallet as LoopringLayer2Wallet;
     const clientService = wallet.getClientService();
@@ -119,8 +117,30 @@ describe('Integration tests (require connection to a real service)', () => {
 
     const accountId = userInfo.accountId;
 
+    const maxFee: WeiFeeInfo = {
+      tokenId: 0, // ETH
+      volume: '600000000000000', // <-- That could be an initial safe value.
+    };
+
     // Method under test.
-    await clientService.updateAccountEcDSA(newKeyPair, accountId, nonce + 1);
+    await clientService.updateAccountEcDSA(
+      newKeyPair,
+      accountId,
+      nonce,
+      maxFee
+    );
+
+    // Collect result(s).
+    const updatedUserInfo = await clientService.getUserInfo();
+    const newPublicKeyX = BigNumber.from(newKeyPair.publicKeyX);
+    const newPublicKeyY = BigNumber.from(newKeyPair.publicKeyY);
+    const updatedPublicKeyX = BigNumber.from(updatedUserInfo.publicKey.x);
+    const updatedPublicKeyY = BigNumber.from(updatedUserInfo.publicKey.y);
+
+    // Expectations.
+    // Expect that the account got updated with the new public key.
+    expect(updatedPublicKeyX).toEqual(newPublicKeyX);
+    expect(updatedPublicKeyY).toEqual(newPublicKeyY);
   });
 
   xit('update_account_ecdsa_sig_uat', async () => {

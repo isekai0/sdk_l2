@@ -221,7 +221,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
       domainData: {
         name: 'Loopring Protocol',
         version: '3.6.0',
-        chainId: 5, // TODO: confirm
+        chainId: 1,
         verifyingContract: '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
       },
     },
@@ -230,7 +230,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
       domainData: {
         name: 'Loopring Protocol',
         version: '3.6.0',
-        chainId: 1, // TODO: confirm
+        chainId: 5,
         verifyingContract: '0x2e76EBd1c7c0C8e7c2B875b6d505a260C525d25e',
       },
     },
@@ -240,7 +240,7 @@ export class LoopringLayer2Provider implements Layer2Provider {
       domainData: {
         name: 'Loopring Protocol',
         version: '3.6.0',
-        chainId: 5, // TODO: confirm
+        chainId: 1,
         verifyingContract: '0x0BABA1Ad5bE3a5C0a66E7ac838a129Bf948f1eA4',
       },
     },

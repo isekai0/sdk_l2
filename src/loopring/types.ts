@@ -46,6 +46,11 @@ export type SimplifiedTypedData = {
 
 type HexString = string;
 
+export type WeiFeeInfo = {
+  tokenId: number;
+  volume: string;
+};
+
 export type UpdateAccountMessageRequest = {
   exchange: HexString;
   owner: HexString;
@@ -54,10 +59,7 @@ export type UpdateAccountMessageRequest = {
     x: HexString;
     y: HexString;
   };
-  maxFee: {
-    tokenId: number;
-    volume: string;
-  };
+  maxFee: WeiFeeInfo;
   validUntil: number;
   nonce: number;
 };
