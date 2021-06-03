@@ -49,12 +49,6 @@ export class Layer2Manager {
             this.providerInstances.set(key, newProvider);
           }
           return this.providerInstances.get(key)!;
-        case Layer2Type.LOOPRING:
-          if (!this.providerInstances.has(key)) {
-            const newProvider = await getLoopringProvider(network);
-            this.providerInstances.set(key, newProvider);
-          }
-          return this.providerInstances.get(key)!;
       }
     } catch (err) {
       throw new Error(
