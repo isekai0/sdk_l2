@@ -8,7 +8,7 @@ import axios from 'axios';
 export async function getLoopringProvider(
   network: 'localhost' | 'rinkeby' | 'ropsten' | 'mainnet' | 'goerli'
 ): Promise<Layer2Provider> {
-  return LoopringLayer2Provider.newInstance(network);
+  throw new Error("Loopring provider temporarily disabled");
 }
 
 export class TokenData {
@@ -17,7 +17,7 @@ export class TokenData {
     private _symbol: string,
     private _name: string,
     private _address: string
-  ) {}
+  ) { }
 
   get tokenId() {
     return this._tokenId;
