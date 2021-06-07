@@ -13,6 +13,7 @@ export type Network =
 export enum Layer2Type {
   ZK_SYNC = 'ZK_SYNC',
   LOOPRING = 'LRC',
+  POLYGON_MATIC = 'POLYGON_MATIC',
 }
 
 export enum AccountBalanceState {
