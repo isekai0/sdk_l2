@@ -2,6 +2,7 @@ import { Layer2Provider } from 'Layer2Provider';
 import { Layer2Type, Network } from './types';
 import { getZkSyncProvider } from './zksync/ZkSyncLayer2Provider';
 import { getLoopringProvider } from './loopring/LoopringLayer2Provider';
+import { getPolygonMaticProvider } from './polygon/matic/PolygonMaticLayer2Provider';
 
 export class Layer2Manager {
   private readonly providerInstances: Map<string, Layer2Provider>;
@@ -38,17 +39,26 @@ export class Layer2Manager {
 
     // Create a key for layer 2 provider and network.
     const key = `${layer2Type}:${network}`;
+
+    if (this.providerInstances.has(key)) {
+      return this.providerInstances.get(key)!;
+    }
+
+    let newProvider: Layer2Provider | undefined = undefined;
     try {
       switch (layer2Type) {
         case Layer2Type.ZK_SYNC:
           if (network === 'goerli') {
             throw new Error('Network Goerli not supported for zksync provider');
           }
-          if (!this.providerInstances.has(key)) {
-            const newProvider = await getZkSyncProvider(network);
-            this.providerInstances.set(key, newProvider);
-          }
-          return this.providerInstances.get(key)!;
+          newProvider = await getZkSyncProvider(network);
+          this.providerInstances.set(key, newProvider);
+          break;
+
+        case Layer2Type.POLYGON_MATIC:
+          newProvider = await getPolygonMaticProvider(network);
+          this.providerInstances.set(key, newProvider);
+          break;
       }
     } catch (err) {
       throw new Error(
@@ -56,7 +66,11 @@ export class Layer2Manager {
       );
     }
 
-    throw new Error('Unsupported provider');
+    if (!newProvider) {
+      throw new Error('Unsupported provider');
+    }
+
+    return newProvider;
   }
 
   /**
