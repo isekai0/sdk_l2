@@ -6,6 +6,8 @@ import { PolygonMaticLayer2Wallet } from './PolygonMaticLayer2Wallet';
 import { PolygonMaticWalletOptions } from './types';
 
 import Matic from '@maticnetwork/maticjs';
+import { ethers } from 'ethers';
+import { Eip1193Bridge } from '@ethersproject/experimental';
 
 export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
@@ -19,7 +21,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
 
   async fromMnemonic(words: string): Promise<Layer2Wallet> {
     // TODO. Had to do this, undefined otherwise. Seek alternative.
-    const ethers = require('ethers');
+    // const ethers = require('ethers');
 
     // Create ethers provided bound to this wallet builder's network.
     const ethersProvider = ethers.getDefaultProvider(this.network);
@@ -28,7 +30,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     const ethWallet = ethers.Wallet.fromMnemonic(words).connect(ethersProvider);
 
     // Instantiate Matic SDK instance.
-    const maticInstance = this.initMaticInstance();
+    const maticInstance: Matic = await this.initMaticInstance(ethWallet);
 
     // Instantiate the layer 2 wallet.
     const layer2Wallet = PolygonMaticLayer2Wallet.newInstance(
@@ -42,12 +44,14 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   }
 
   async fromOptions(options: PolygonMaticWalletOptions): Promise<Layer2Wallet> {
+    const ethersSigner = options.ethersSigner;
+
     // Check that the ethers signer has an assigned provider.
-    if (!options.ethersSigner.provider) {
+    if (!ethersSigner.provider) {
       throw new Error('Undefined ethers provider');
     }
 
-    const etherNetwork = await options.ethersSigner.provider.getNetwork();
+    const etherNetwork = await ethersSigner.provider.getNetwork();
     if (!this.sameNetwork(etherNetwork.name, this.network)) {
       throw new Error(
         `Ethers lib signer has the wrong network ${etherNetwork.name} != ${this.network}`
@@ -55,12 +59,12 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     }
 
     // Instantiate Matic SDK instance.
-    const maticInstance = this.initMaticInstance();
+    const maticInstance: Matic = await this.initMaticInstance(ethersSigner);
 
     // Instantiate the layer 2 wallet.
     const layer2Wallet = PolygonMaticLayer2Wallet.newInstance(
       this.network,
-      options.ethersSigner,
+      ethersSigner,
       this.layer2Provider,
       maticInstance
     );
@@ -76,14 +80,43 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     return a === b;
   }
 
-  private initMaticInstance(): Matic {
+  private async initMaticInstance(ethersSigner: ethers.Signer): Promise<Matic> {
     // Instantiate Matic SDK instance.
     // TODO: provide Matic init arguments.
     // Map ETH mainnet to Matic mainnet and ETH goerli to Matic testnet.
     // Use 'mumbai' for Matic testnet and 'v1' for Matic mainnet.
-    const maticInstance = new Matic();
 
-    // TODO: Invoke: maticInstance.initialize()
+    let network: 'mainnet' | 'testnet';
+    let version: 'v1' | 'mumbai';
+
+    switch (this.network) {
+      case 'goerli':
+        network = 'testnet';
+        version = 'mumbai';
+        break;
+      case 'mainnet':
+      case 'homestead':
+        network = 'mainnet';
+        version = 'v1';
+        break;
+      default:
+        throw new Error(`Network ${this.network} not supported`);
+    }
+
+    const parentProvider = new Eip1193Bridge(
+      ethersSigner,
+      ethersSigner.provider
+    );
+    const maticProvider = `https://rpc-${version}.maticvigil.com`;
+
+    const maticInstance = new Matic({
+      network,
+      version,
+      parentProvider,
+      maticProvider,
+    });
+
+    await maticInstance.initialize();
 
     return maticInstance;
   }

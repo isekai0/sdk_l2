@@ -60,6 +60,7 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
+    "@ethersproject/experimental": "5.2.0",
     "@maticnetwork/maticjs": "^2.0.40",
     "@types/object-hash": "^1.3.4",
     "assert": "^2.0.0",

@@ -54,6 +54,7 @@ describe('Query-related tests', () => {
   });
 
   // TODO: Re-enable tests when they do not longer invoke remote calls.
+
   xit('Bring supported tokens', async () => {
     // Test Setup.
 
@@ -63,6 +64,10 @@ describe('Query-related tests', () => {
     // Expectations.
     // Expect at least one token retrieved.
     expect(tokenSet.size).toBeGreaterThan(0);
+  });
+
+  xit('Query L2 Balance', async () => {
+    await layer2Wallet.getAccountBalances();
   });
 });
 
