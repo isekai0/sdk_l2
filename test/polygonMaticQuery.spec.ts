@@ -66,7 +66,7 @@ describe('Query-related tests', () => {
     expect(tokenSet.size).toBeGreaterThan(0);
   });
 
-  it('Query L2 Balance', async () => {
+  xit('Query L2 Balance', async () => {
     // Method under test.
     const balance = await layer2Wallet.getBalance();
 

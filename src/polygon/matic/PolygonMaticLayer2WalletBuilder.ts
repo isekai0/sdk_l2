@@ -17,12 +17,16 @@ class Eip1193BridgeHelper extends Eip1193Bridge {
   /**
    * Cleans some parameters that "ethers lib" complains with if they are present
    * but not allowed.
-   * 
+   *
    * @param request - Request object with the ETH method to call and their params.
    * @returns The result value from the base class request method.
    */
-  request(request: { method: string, params?: Array<any> }): Promise<any> {
-    if (request.method === 'eth_call' && !!request.params && request.params.length > 0) {
+  request(request: { method: string; params?: Array<any> }): Promise<any> {
+    if (
+      request.method === 'eth_call' &&
+      !!request.params &&
+      request.params.length > 0
+    ) {
       // remove the "from" field for request.params[0]
       if (!request.params[0].from) {
         delete request.params[0].from;
@@ -39,12 +43,11 @@ class Eip1193BridgeHelper extends Eip1193Bridge {
   }
 }
 
-
 export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
     private network: Network,
     private layer2Provider: PolygonMaticLayer2Provider
-  ) { }
+  ) {}
 
   getNetwork(): Network {
     return this.network;
@@ -112,11 +115,8 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   }
 
   private async initMaticInstance(ethersSigner: ethers.Signer): Promise<Matic> {
-    // Instantiate Matic SDK instance.
-    // TODO: provide Matic init arguments.
     // Map ETH mainnet to Matic mainnet and ETH goerli to Matic testnet.
     // Use 'mumbai' for Matic testnet and 'v1' for Matic mainnet.
-
     let network: 'mainnet' | 'testnet';
     let version: 'v1' | 'mumbai';
 
@@ -134,12 +134,17 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
         throw new Error(`Network ${this.network} not supported`);
     }
 
+    // Use a regular EIP-1193 provider (i.e. web3) to ethers lib bridge since
+    // the Matic SDK uses a web3-like provider.
     const parentProvider = new Eip1193BridgeHelper(
       ethersSigner,
       ethersSigner.provider
     );
+
+    // Use Matic JSON-RPC endpoint according to the corresponding network.
     const maticProvider = `https://rpc-${version}.maticvigil.com`;
 
+    // Instantiate Matic SDK instance.
     const maticInstance = new Matic({
       network,
       version,
@@ -147,6 +152,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
       maticProvider,
     });
 
+    // Initialize the SDK instance.
     await maticInstance.initialize();
 
     return maticInstance;

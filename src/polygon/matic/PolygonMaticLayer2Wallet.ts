@@ -68,7 +68,10 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     // NOTE: There is going to be a separate Pull Request specifically for this.
     const tokenAddress = this.tokenDataBySymbol['WETH'].address;
     const balance: string = await this.maticInstance.balanceOfERC20(
-      this.address, tokenAddress, { parent: false });
+      this.address,
+      tokenAddress,
+      { parent: false }
+    );
 
     return balance;
   }
