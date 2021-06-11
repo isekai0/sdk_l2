@@ -63,8 +63,16 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async getBalance(): Promise<BigNumberish> {
-    throw new Error('Not implemented');
+    // TODO: Figure out what the correct ERC20 token symbol corresponds to ETH
+    // in the Matic network.
+    // NOTE: There is going to be a separate Pull Request specifically for this.
+    const tokenAddress = this.tokenDataBySymbol['WETH'].address;
+    const balance: string = await this.maticInstance.balanceOfERC20(
+      this.address, tokenAddress, { parent: false });
+
+    return balance;
   }
+
   async getBalanceVerified(): Promise<BigNumberish> {
     throw new Error('Not implemented');
   }

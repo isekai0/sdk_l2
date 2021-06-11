@@ -66,8 +66,13 @@ describe('Query-related tests', () => {
     expect(tokenSet.size).toBeGreaterThan(0);
   });
 
-  xit('Query L2 Balance', async () => {
-    await layer2Wallet.getAccountBalances();
+  it('Query L2 Balance', async () => {
+    // Method under test.
+    const balance = await layer2Wallet.getBalance();
+
+    // Expectations.
+    // Expect some truthy value.
+    expect(balance).toBeTruthy();
   });
 });
 

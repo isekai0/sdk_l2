@@ -9,11 +9,42 @@ import Matic from '@maticnetwork/maticjs';
 import { ethers } from 'ethers';
 import { Eip1193Bridge } from '@ethersproject/experimental';
 
+class Eip1193BridgeHelper extends Eip1193Bridge {
+  constructor(signer: ethers.Signer, provider?: ethers.providers.Provider) {
+    super(signer, provider);
+  }
+
+  /**
+   * Cleans some parameters that "ethers lib" complains with if they are present
+   * but not allowed.
+   * 
+   * @param request - Request object with the ETH method to call and their params.
+   * @returns The result value from the base class request method.
+   */
+  request(request: { method: string, params?: Array<any> }): Promise<any> {
+    if (request.method === 'eth_call' && !!request.params && request.params.length > 0) {
+      // remove the "from" field for request.params[0]
+      if (!request.params[0].from) {
+        delete request.params[0].from;
+      }
+
+      // remove the "gas" field for request.params[0]
+      if (!request.params[0].gas) {
+        delete request.params[0].gas;
+      }
+    }
+
+    // Invoke parent's method now that the request object is clean.
+    return super.request(request);
+  }
+}
+
+
 export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
     private network: Network,
     private layer2Provider: PolygonMaticLayer2Provider
-  ) {}
+  ) { }
 
   getNetwork(): Network {
     return this.network;
@@ -103,7 +134,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
         throw new Error(`Network ${this.network} not supported`);
     }
 
-    const parentProvider = new Eip1193Bridge(
+    const parentProvider = new Eip1193BridgeHelper(
       ethersSigner,
       ethersSigner.provider
     );
