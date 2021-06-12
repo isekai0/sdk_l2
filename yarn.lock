@@ -993,6 +993,15 @@
     "@ethersproject/properties" "^5.2.0"
     "@ethersproject/transactions" "^5.2.0"
 
+"@ethersproject/experimental@5.2.0":
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/@ethersproject/experimental/-/experimental-5.2.0.tgz#2d82877f570a3cb5456005a1fb536247680a6df3"
+  integrity sha512-R9xc36y3IXd8JuS2qy6OStIoTuUd4ygrFOmNTtBKRpIuQixZ5PpwgCm2RjBewZjmp0BPBLR9CR8ovVi890vnVQ==
+  dependencies:
+    "@ethersproject/web" "^5.2.0"
+    ethers "^5.2.0"
+    scrypt-js "3.0.1"
+
 "@ethersproject/hash@5.2.0", "@ethersproject/hash@^5.2.0":
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/@ethersproject/hash/-/hash-5.2.0.tgz#2d21901eafc5bdb738b4ad96bee364d371ec724b"
