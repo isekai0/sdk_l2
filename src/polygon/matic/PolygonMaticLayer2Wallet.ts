@@ -17,6 +17,8 @@ import {
   BigNumberish,
 } from '../../types';
 
+import BN from 'bn.js';
+
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
 
@@ -97,9 +99,30 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
-    if (!(deposit.tokenSymbol in this.tokenDataBySymbol)) {
-      throw new Error(`Token ${deposit.tokenSymbol} not supported`);
+    if (deposit.tokenSymbol !== 'ETH') {
+      // Check if token other than ETH is supported.
+      if (!(deposit.tokenSymbol in this.tokenDataBySymbol)) {
+        throw new Error(`Token ${deposit.tokenSymbol} not supported`);
+      }
     }
+
+    if (deposit.toAddress !== this.address) {
+      throw new Error(
+        `Making deposit to an address different from wallet's is not supported. Address: ${deposit.toAddress}`
+      );
+    }
+
+    const depositAmountWei = ethers.utils.parseEther(deposit.amount);
+    const depositAmountWeiBN = new BN(depositAmountWei.toString());
+
+    const depositResult = await this.maticInstance.depositEther(
+      depositAmountWeiBN,
+      {
+        from: this.address,
+        to: this.address,
+        // gasPrice: '10000000000'
+      }
+    );
 
     throw new Error('Not implemented');
   }

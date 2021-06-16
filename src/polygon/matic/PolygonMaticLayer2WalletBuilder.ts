@@ -22,18 +22,46 @@ class Eip1193BridgeHelper extends Eip1193Bridge {
    * @returns The result value from the base class request method.
    */
   request(request: { method: string; params?: Array<any> }): Promise<any> {
-    if (
-      request.method === 'eth_call' &&
-      !!request.params &&
-      request.params.length > 0
-    ) {
-      // remove the "from" field for request.params[0]
-      if (!request.params[0].from) {
+    // In case of 'eth_call' method, filter out "from" and "gas" fields out of
+    // the parameters.
+    if (request.method === 'eth_call') {
+      if (!!request.params && request.params.length > 0) {
+        // remove the "from" field for request.params[0]
+        if (!request.params[0].from) {
+          delete request.params[0].from;
+        }
+
+        // remove the "gas" field for request.params[0]
+        if (!request.params[0].gas) {
+          delete request.params[0].gas;
+        }
+      }
+    }
+    // In case of 'eth_estimateGas', rename it to just 'estimateGas'.
+    else if (request.method === 'eth_estimateGas') {
+      request.method = 'estimateGas';
+
+      // remove the "from" field for request.params[0], if present.
+      if (request.params && request.params[0].from) {
         delete request.params[0].from;
       }
 
-      // remove the "gas" field for request.params[0]
-      if (!request.params[0].gas) {
+      // remove the "gas" field for request.params[0], if present.
+      if (request.params) {
+        delete request.params[0].gas;
+      }
+    }
+    // In case of 'net_version', invoke 'eth_chainId'
+    else if (request.method === 'net_version') {
+      request.method = 'eth_chainId';
+
+      if (request.params && request.params.length > 0) {
+        delete request.params[0].from;
+      }
+    } else if (request.method === 'eth_sendTransaction') {
+      if (request.params && request.params.length > 0) {
+        delete request.params[0].encodeAbi;
+        delete request.params[0].from;
         delete request.params[0].gas;
       }
     }
@@ -54,11 +82,11 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   }
 
   async fromMnemonic(words: string): Promise<Layer2Wallet> {
-    // TODO. Had to do this, undefined otherwise. Seek alternative.
-    // const ethers = require('ethers');
-
     // Create ethers provided bound to this wallet builder's network.
-    const ethersProvider = ethers.getDefaultProvider(this.network);
+    // TODO: Create options object to pass provider settings.
+    const ethersProvider = ethers.getDefaultProvider(this.network, {
+      infura: process.env.TEST_INFURA_PROJECT_ID,
+    });
 
     // Create an ethers wallet from the provided mnemonics.
     const ethWallet = ethers.Wallet.fromMnemonic(words).connect(ethersProvider);
