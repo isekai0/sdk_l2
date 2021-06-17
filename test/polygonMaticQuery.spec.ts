@@ -1,4 +1,4 @@
-import { Network, OperationType, Layer2Type } from '../src/types';
+import { Network, OperationType, Layer2Type, Receipt } from '../src/types';
 import { Deposit, Withdrawal, Transfer } from '../src/Operation';
 import { Layer2Manager } from '../src/Layer2Manager';
 import { Layer2Provider } from '../src/Layer2Provider';
@@ -82,12 +82,20 @@ describe('Query-related tests', () => {
     // Create Deposit data.
     const deposit = Deposit.createDeposit({
       toAddress: myAddress,
-      amount: '1.2', // Desired amount
+      amount: '0.05', // Desired amount
       fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
     });
 
     // Method under test.
-    await layer2Wallet.deposit(deposit);
+    const depositResult = await layer2Wallet.deposit(deposit);
+
+    // Get receipt.
+    const depositReceipt: Receipt = await depositResult.getReceipt();
+
+    // Expectations.
+    expect(depositResult.hash).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeGreaterThan(0);
   });
 });
 

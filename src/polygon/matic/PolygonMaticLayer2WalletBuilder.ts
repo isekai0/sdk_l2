@@ -5,7 +5,7 @@ import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
 import { PolygonMaticLayer2Wallet } from './PolygonMaticLayer2Wallet';
 import { PolygonMaticWalletOptions } from './types';
 
-import Matic from '@maticnetwork/maticjs';
+import { MaticPOSClient } from '@maticnetwork/maticjs';
 import { ethers } from 'ethers';
 import { Eip1193Bridge } from '@ethersproject/experimental';
 
@@ -75,7 +75,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
   constructor(
     private network: Network,
     private layer2Provider: PolygonMaticLayer2Provider
-  ) {}
+  ) { }
 
   getNetwork(): Network {
     return this.network;
@@ -92,14 +92,14 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     const ethWallet = ethers.Wallet.fromMnemonic(words).connect(ethersProvider);
 
     // Instantiate Matic SDK instance.
-    const maticInstance: Matic = await this.initMaticInstance(ethWallet);
+    const maticPOSClient: MaticPOSClient = await this.initMaticInstance(ethWallet);
 
     // Instantiate the layer 2 wallet.
     const layer2Wallet = PolygonMaticLayer2Wallet.newInstance(
       this.network,
       ethWallet,
       this.layer2Provider,
-      maticInstance
+      maticPOSClient
     );
 
     return layer2Wallet;
@@ -121,14 +121,14 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     }
 
     // Instantiate Matic SDK instance.
-    const maticInstance: Matic = await this.initMaticInstance(ethersSigner);
+    const maticPOSClient: MaticPOSClient = await this.initMaticInstance(ethersSigner);
 
     // Instantiate the layer 2 wallet.
     const layer2Wallet = PolygonMaticLayer2Wallet.newInstance(
       this.network,
       ethersSigner,
       this.layer2Provider,
-      maticInstance
+      maticPOSClient
     );
 
     return layer2Wallet;
@@ -142,7 +142,7 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     return a === b;
   }
 
-  private async initMaticInstance(ethersSigner: ethers.Signer): Promise<Matic> {
+  private async initMaticInstance(ethersSigner: ethers.Signer): Promise<MaticPOSClient> {
     // Map ETH mainnet to Matic mainnet and ETH goerli to Matic testnet.
     // Use 'mumbai' for Matic testnet and 'v1' for Matic mainnet.
     let network: 'mainnet' | 'testnet';
@@ -172,17 +172,14 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     // Use Matic JSON-RPC endpoint according to the corresponding network.
     const maticProvider = `https://rpc-${version}.maticvigil.com`;
 
-    // Instantiate Matic SDK instance.
-    const maticInstance = new Matic({
+    // Instantiate Matic POS client.
+    const maticPOSClient = new MaticPOSClient({
       network,
       version,
       parentProvider,
       maticProvider,
     });
 
-    // Initialize the SDK instance.
-    await maticInstance.initialize();
-
-    return maticInstance;
+    return maticPOSClient;
   }
 }
