@@ -133,10 +133,14 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
               // Instantiate Polygon/Matic transaction result. As soon as we get
               // a transaction hash, we can resolve result with hash and the
               // receipt awaitable.
-              const polygonMaticDepositResult = new PolygonMaticResult({
-                hash,
-                awaitable: receiptAwaitable
-              }, deposit, gasPrice);
+              const polygonMaticDepositResult = new PolygonMaticResult(
+                {
+                  hash,
+                  awaitable: receiptAwaitable,
+                },
+                deposit,
+                gasPrice
+              );
 
               // Resolve promise with result.
               resolveResult(polygonMaticDepositResult);
@@ -148,7 +152,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
             onError: (err: any) => {
               // Reject promise in case of error.
               rejectResult(err);
-            }
+            },
           }
         );
       });
