@@ -1,5 +1,5 @@
-import Matic from '@maticnetwork/maticjs';
-import { ethers } from 'ethers';
+import { MaticPOSClient } from '@maticnetwork/maticjs';
+import { BigNumber, ethers } from 'ethers';
 import { EventEmitter } from 'events';
 
 import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
@@ -17,6 +17,9 @@ import {
   BigNumberish,
 } from '../../types';
 
+import BN from 'bn.js';
+import { PolygonMaticResult } from './PolygonMaticResult';
+
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
 
@@ -26,7 +29,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     private readonly address: string,
     private readonly polygonMaticProvider: PolygonMaticLayer2Provider,
     private readonly tokenDataBySymbol: TokenDataDict,
-    private readonly maticInstance: Matic
+    private readonly maticPOSClient: MaticPOSClient
   ) {
     this.accountStream = new AccountStream(this);
   }
@@ -35,7 +38,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     network: Network,
     ethersSigner: ethers.Signer,
     polygonMaticProvider: PolygonMaticLayer2Provider,
-    maticInstance: Matic
+    maticPOSClient: MaticPOSClient
   ): Promise<PolygonMaticLayer2Wallet> {
     // Load Loopring ExchangeV3 ABI.
     const address = await ethersSigner.getAddress();
@@ -48,7 +51,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
       address,
       polygonMaticProvider,
       tokenDataBySymbol,
-      maticInstance
+      maticPOSClient
     );
 
     return layer2Wallet;
@@ -67,7 +70,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     // in the Matic network.
     // NOTE: There is going to be a separate Pull Request specifically for this.
     const tokenAddress = this.tokenDataBySymbol['WETH'].address;
-    const balance: string = await this.maticInstance.balanceOfERC20(
+    const balance: string = await this.maticPOSClient.balanceOfERC20(
       this.address,
       tokenAddress,
       { parent: false }
@@ -97,11 +100,65 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
-    if (!(deposit.tokenSymbol in this.tokenDataBySymbol)) {
-      throw new Error(`Token ${deposit.tokenSymbol} not supported`);
+    if (deposit.tokenSymbol !== 'ETH') {
+      // Check if token other than ETH is supported.
+      if (!(deposit.tokenSymbol in this.tokenDataBySymbol)) {
+        throw new Error(`Token ${deposit.tokenSymbol} not supported`);
+      }
     }
 
-    throw new Error('Not implemented');
+    if (deposit.toAddress !== this.address) {
+      throw new Error(
+        `Making deposit to an address different from wallet's is not supported. Address: ${deposit.toAddress}`
+      );
+    }
+
+    const depositAmountWei = ethers.utils.parseEther(deposit.amount);
+    const depositAmountWeiBN = new BN(depositAmountWei.toString());
+
+    // TODO: Add gas price to Deposit operation. If not defined, get the gas
+    // price like here.
+    const gasPrice: BigNumber = await this.ethersSigner.getGasPrice();
+
+    const result = new Promise<Result>((resolveResult, rejectResult) => {
+      // Deposit awaitable is the final transaction receipt.
+      const receiptAwaitable = new Promise((resolveReceipt) => {
+        this.maticPOSClient.depositEtherForUser(
+          this.address, // from the current user's address.
+          depositAmountWeiBN,
+          {
+            from: this.address,
+            gasPrice: gasPrice.toString(),
+            onTransactionHash: (hash: any) => {
+              // Instantiate Polygon/Matic transaction result. As soon as we get
+              // a transaction hash, we can resolve result with hash and the
+              // receipt awaitable.
+              const polygonMaticDepositResult = new PolygonMaticResult(
+                {
+                  hash,
+                  awaitable: receiptAwaitable,
+                },
+                deposit,
+                gasPrice
+              );
+
+              // Resolve promise with result.
+              resolveResult(polygonMaticDepositResult);
+            },
+            onReceipt: (receipt: any) => {
+              // Resolve receipt promise.
+              resolveReceipt(receipt);
+            },
+            onError: (err: any) => {
+              // Reject promise in case of error.
+              rejectResult(err);
+            },
+          }
+        );
+      });
+    });
+
+    return result;
   }
 
   async transfer(transfer: Transfer): Promise<Result> {

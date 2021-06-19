@@ -1,4 +1,4 @@
-import { Network, OperationType, Layer2Type } from '../src/types';
+import { Network, OperationType, Layer2Type, Receipt } from '../src/types';
 import { Deposit, Withdrawal, Transfer } from '../src/Operation';
 import { Layer2Manager } from '../src/Layer2Manager';
 import { Layer2Provider } from '../src/Layer2Provider';
@@ -9,7 +9,7 @@ import { Layer2Wallet } from '../src/Layer2Wallet';
 require('dotenv').config();
 
 // Define 2-minute timeout.
-jest.setTimeout(120_000);
+jest.setTimeout(1_200_000);
 
 // Global variables to all tests.
 const SAMPLE_ADDRESS = '0x89205A3A3b2A69De6Dbf7f01ED13B2108B2c43e7';
@@ -74,6 +74,29 @@ describe('Query-related tests', () => {
     // Expect some truthy value.
     expect(balance).toBeTruthy();
   });
+
+  xit('Do Ether deposit', async () => {
+    // Test setup.
+    const myAddress = layer2Wallet.getAddress();
+
+    // Create Deposit data.
+    const deposit = Deposit.createDeposit({
+      toAddress: myAddress,
+      amount: '0.05', // Desired amount
+      fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
+    });
+
+    // Method under test.
+    const depositResult = await layer2Wallet.deposit(deposit);
+
+    // Get receipt.
+    const depositReceipt: Receipt = await depositResult.getReceipt();
+
+    // Expectations.
+    expect(depositResult.hash).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeGreaterThan(0);
+  });
 });
 
 // Utility functions
@@ -82,7 +105,10 @@ function getMockedSigner(network: Network): ethers.Signer {
   // TODO: See what's going on here.
   const ethers = require('ethers');
 
-  const ethersProvider = new ethers.getDefaultProvider(network);
+  const ethersProvider = ethers.getDefaultProvider(network, {
+    alchemy: process.env.TEST_ALCHEMY_API_TOKEN,
+    // infura: process.env.TEST_INFURA_PROJECT_ID
+  });
 
   const DO_NOT_REVEAL_THESE_MNEMONICS = process.env.TEST_MNEMONICS;
   expect(DO_NOT_REVEAL_THESE_MNEMONICS).toBeTruthy();

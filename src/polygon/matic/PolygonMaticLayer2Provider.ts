@@ -144,6 +144,8 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
             request.params.offset += tokenMappings.length;
           }
         } while (hasNextPage);
+
+        // Set tokenDataBySymbol field.
         this._tokenDataBySymbol = tokenDataBySymbol;
       } catch (err) {
         throw new Error(
