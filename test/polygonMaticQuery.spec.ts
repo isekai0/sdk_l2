@@ -82,8 +82,33 @@ describe('Query-related tests', () => {
     // Create Deposit data.
     const deposit = Deposit.createDeposit({
       toAddress: myAddress,
-      amount: '0.05', // Desired amount
+      amount: '0.024', // Desired amount
       fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
+    });
+
+    // Method under test.
+    const depositResult = await layer2Wallet.deposit(deposit);
+
+    // Get receipt.
+    const depositReceipt: Receipt = await depositResult.getReceipt();
+
+    // Expectations.
+    expect(depositResult.hash).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeTruthy();
+    expect(depositReceipt.blockNumber).toBeGreaterThan(0);
+  });
+
+  xit('Do ERC-20 deposit', async () => {
+    // Test setup.
+    const myAddress = layer2Wallet.getAddress();
+
+    // Create Deposit data.
+    const deposit: Deposit = Deposit.createTokenDeposit({
+      tokenSymbol: 'DAI',
+      toAddress: myAddress,
+      amount: '0.02', // Desired amount.
+      fee: '0.01',
+      approveForErc20: true,
     });
 
     // Method under test.
