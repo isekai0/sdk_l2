@@ -19,6 +19,7 @@ import {
 
 import BN from 'bn.js';
 import { PolygonMaticResult } from './PolygonMaticResult';
+import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
 
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
@@ -69,7 +70,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     // TODO: Figure out what the correct ERC20 token symbol corresponds to ETH
     // in the Matic network.
     // NOTE: There is going to be a separate Pull Request specifically for this.
-    const tokenAddress = this.tokenDataBySymbol['WETH'].address;
+    const tokenAddress = this.tokenDataBySymbol['WETH'].childAddress;
     const balance: string = await this.maticPOSClient.balanceOfERC20(
       this.address,
       tokenAddress,
@@ -113,8 +114,11 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
       );
     }
 
-    const depositAmountWei = ethers.utils.parseEther(deposit.amount);
-    const depositAmountWeiBN = new BN(depositAmountWei.toString());
+    // Get the amount to deposit in Wei, BN type.
+    const depositAmountWeiBN = this.parseAmountToBN(
+      deposit.amount,
+      deposit.tokenSymbol
+    );
 
     // TODO: Add gas price to Deposit operation. If not defined, get the gas
     // price like here.
@@ -122,39 +126,85 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
 
     const result = new Promise<Result>((resolveResult, rejectResult) => {
       // Deposit awaitable is the final transaction receipt.
-      const receiptAwaitable = new Promise((resolveReceipt) => {
-        this.maticPOSClient.depositEtherForUser(
-          this.address, // from the current user's address.
-          depositAmountWeiBN,
-          {
-            from: this.address,
-            gasPrice: gasPrice.toString(),
-            onTransactionHash: (hash: any) => {
-              // Instantiate Polygon/Matic transaction result. As soon as we get
-              // a transaction hash, we can resolve result with hash and the
-              // receipt awaitable.
-              const polygonMaticDepositResult = new PolygonMaticResult(
-                {
-                  hash,
-                  awaitable: receiptAwaitable,
-                },
-                deposit,
-                gasPrice
+      const receiptAwaitable = new Promise(async (resolveReceipt) => {
+        // Set send options either for ETH or any other ERC20 token.
+        const sendOptions: SendOptions = {
+          from: this.address,
+          gasPrice: gasPrice.toString(),
+          onTransactionHash: (hash: any) => {
+            // Instantiate Polygon/Matic transaction result. As soon as we get
+            // a transaction hash, we can resolve result with hash and the
+            // receipt awaitable.
+            const polygonMaticDepositResult = new PolygonMaticResult(
+              {
+                hash,
+                awaitable: receiptAwaitable,
+              },
+              deposit,
+              gasPrice
+            );
+
+            // Resolve promise with result.
+            resolveResult(polygonMaticDepositResult);
+          },
+          onReceipt: (receipt: any) => {
+            // Resolve receipt promise.
+            resolveReceipt(receipt);
+          },
+          onError: (err: any) => {
+            // Reject promise in case of error.
+            rejectResult(err);
+          },
+        };
+
+        try {
+          if (deposit.tokenSymbol === 'ETH') {
+            // Send ETH.
+            this.maticPOSClient.depositEtherForUser(
+              this.address, // from the current user's address.
+              depositAmountWeiBN,
+              sendOptions
+            );
+          } else {
+            // Obtain the address for the ERC-20 token contract.
+            const tokenData = this.tokenDataBySymbol[deposit.tokenSymbol];
+
+            if (deposit.approveForErc20) {
+              // Check the current allowance first to see if we should call the
+              // approve function to increase allowance.
+
+              // Get user's address allowance.
+              const allowance = await this.maticPOSClient.getERC20Allowance(
+                this.address,
+                tokenData.rootAddress
+              );
+              const allowanceBN = this.parseAmountToBN(
+                allowance,
+                deposit.tokenSymbol
               );
 
-              // Resolve promise with result.
-              resolveResult(polygonMaticDepositResult);
-            },
-            onReceipt: (receipt: any) => {
-              // Resolve receipt promise.
-              resolveReceipt(receipt);
-            },
-            onError: (err: any) => {
-              // Reject promise in case of error.
-              rejectResult(err);
-            },
+              // Invoke approve if the allowance is not enough.
+              if (depositAmountWeiBN.gt(allowanceBN)) {
+                await this.maticPOSClient.approveERC20ForDeposit(
+                  tokenData.rootAddress,
+                  depositAmountWeiBN,
+                  { from: this.address }
+                );
+              }
+            }
+
+            // Send the specified ERC-20 token.
+            this.maticPOSClient.depositERC20ForUser(
+              tokenData.rootAddress,
+              this.address, // from the current user's address.
+              depositAmountWeiBN,
+              sendOptions
+            );
           }
-        );
+        } catch (err) {
+          // Reject transaction result if any exception thrown.
+          rejectResult(err);
+        }
       });
     });
 
@@ -171,5 +221,21 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
 
   async getAccountEvents(): Promise<EventEmitter> {
     throw new Error('Not implemented');
+  }
+
+  private parseAmountToBN(amount: string, symbol: string) {
+    if (symbol === 'ETH') {
+      const amountWei = ethers.utils.parseEther(amount);
+      const amountWeiBN = new BN(amountWei.toString());
+
+      return amountWeiBN;
+    }
+
+    // In case of ERC20 token, use the "decimals" information.
+    const tokenData = this.tokenDataBySymbol[symbol];
+    const amountUnits = ethers.utils.parseUnits(amount, tokenData.decimals);
+    const amountUnitsBN = new BN(amountUnits.toString());
+
+    return amountUnitsBN;
   }
 }

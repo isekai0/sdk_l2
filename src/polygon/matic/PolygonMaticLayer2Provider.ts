@@ -86,7 +86,7 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
     // nothing to do.
   }
 
-  async getTokenDataBySymbol() {
+  async getTokenDataBySymbol(): Promise<TokenDataDict> {
     if (!this._tokenDataBySymbol) {
       const tokenDataBySymbol: TokenDataDict = {};
       const tokenInfo = this.getTokenInfoByNetwork();
@@ -132,7 +132,9 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
               mapping.id,
               mapping.symbol,
               mapping.name,
-              mapping.child_token
+              mapping.root_token,
+              mapping.child_token,
+              mapping.decimals
             );
           }
 

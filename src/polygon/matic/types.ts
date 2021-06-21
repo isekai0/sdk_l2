@@ -9,7 +9,7 @@ export type TokenInfoMetadata = {
   url: string;
   chainId: number;
   mapType: string;
-  tokenType: 'ERC20'; // Only ERC20 token type is supported in this library.
+  tokenType: 'ERC20'; // Only Matic ERC20 token type is supported in this library.
 };
 
 export class TokenData {
@@ -17,8 +17,12 @@ export class TokenData {
     private _tokenId: number,
     private _symbol: string,
     private _name: string,
-    private _address: string
-  ) {}
+    private _rootAddress: string,
+    private _childAddress: string,
+    private _decimals: number
+  ) {
+    // Do nothing.
+  }
 
   get tokenId() {
     return this._tokenId;
@@ -29,8 +33,14 @@ export class TokenData {
   get name() {
     return this._name;
   }
-  get address() {
-    return this._address;
+  get rootAddress() {
+    return this._rootAddress;
+  }
+  get childAddress() {
+    return this._childAddress;
+  }
+  get decimals() {
+    return this._decimals;
   }
 }
 
