@@ -67,10 +67,18 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async getBalance(): Promise<BigNumberish> {
-    // TODO: Figure out what the correct ERC20 token symbol corresponds to ETH
-    // in the Matic network.
-    // NOTE: There is going to be a separate Pull Request specifically for this.
-    const tokenAddress = this.tokenDataBySymbol['WETH'].childAddress;
+    return this.getTokenBalance('ETH');
+  }
+
+  async getBalanceVerified(): Promise<BigNumberish> {
+    return this.getBalance();
+  }
+
+  async getTokenBalance(tokenSymbol: string): Promise<BigNumberish> {
+    // Get the ERC-20 token address within the Polygon network.
+    const tokenAddress = this.tokenDataBySymbol[tokenSymbol].childAddress;
+
+    // Obtain the token's balance.
     const balance: string = await this.maticPOSClient.balanceOfERC20(
       this.address,
       tokenAddress,
@@ -80,15 +88,8 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     return balance;
   }
 
-  async getBalanceVerified(): Promise<BigNumberish> {
-    throw new Error('Not implemented');
-  }
-
-  async getTokenBalance(tokenSymbol: string): Promise<BigNumberish> {
-    throw new Error('Not implemented');
-  }
   async getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish> {
-    throw new Error('Not implemented');
+    return this.getTokenBalance(tokenSymbol);
   }
 
   // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl

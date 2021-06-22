@@ -92,16 +92,19 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
     // Use 'mumbai' for Matic testnet and 'v1' for Matic mainnet.
     let network: 'mainnet' | 'testnet';
     let version: 'v1' | 'mumbai';
+    let rpcHostSuffix: 'mainnet' | 'mumbai';
 
     switch (this.network) {
       case 'goerli':
         network = 'testnet';
         version = 'mumbai';
+        rpcHostSuffix = 'mumbai';
         break;
       case 'mainnet':
       case 'homestead':
         network = 'mainnet';
         version = 'v1';
+        rpcHostSuffix = 'mainnet';
         break;
       default:
         throw new Error(`Network ${this.network} not supported`);
@@ -114,8 +117,9 @@ export class PolygonMaticLayer2WalletBuilder implements Layer2WalletBuilder {
       ethersSigner.provider
     );
 
+    // TODO: Add option to provide dedicated keys to invoke RPC.
     // Use Matic JSON-RPC endpoint according to the corresponding network.
-    const maticProvider = `https://rpc-${version}.maticvigil.com`;
+    const maticProvider = `https://rpc-${rpcHostSuffix}.maticvigil.com`;
 
     // Instantiate Matic POS client.
     const maticPOSClient = new MaticPOSClient({

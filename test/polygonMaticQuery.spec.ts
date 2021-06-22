@@ -66,9 +66,18 @@ describe('Query-related tests', () => {
     expect(tokenSet.size).toBeGreaterThan(0);
   });
 
-  xit('Query L2 Balance', async () => {
+  xit('Query ETH Balance in L2', async () => {
     // Method under test.
     const balance = await layer2Wallet.getBalance();
+
+    // Expectations.
+    // Expect some truthy value.
+    expect(balance).toBeTruthy();
+  });
+
+  xit('Query ERC-20 Token Balance in L2', async () => {
+    // Method under test.
+    const balance = await layer2Wallet.getTokenBalance('DAI');
 
     // Expectations.
     // Expect some truthy value.
@@ -131,7 +140,7 @@ function getMockedSigner(network: Network): ethers.Signer {
   const ethers = require('ethers');
 
   const ethersProvider = ethers.getDefaultProvider(network, {
-    alchemy: process.env.TEST_ALCHEMY_API_TOKEN,
+    //alchemy: process.env.TEST_ALCHEMY_API_TOKEN,
     // infura: process.env.TEST_INFURA_PROJECT_ID
   });
 
