@@ -139,13 +139,17 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
           // within the Matic network.
           const tokenMappings = body.data.mapping;
           for (const mapping of tokenMappings) {
+            if (!mapping.symbol) {
+              // Skip any entry with no symbol.
+              continue;
+            }
             // Add token data.
             tokenDataBySymbol[mapping.symbol] = new TokenData(
               mapping.id,
               mapping.symbol,
               mapping.name,
-              mapping.root_token,
-              mapping.child_token,
+              mapping.root_token.substring(0, 42),
+              mapping.child_token.substring(0, 42),
               mapping.decimals
             );
           }

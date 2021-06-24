@@ -131,6 +131,14 @@ describe('Query-related tests', () => {
     expect(depositReceipt.blockNumber).toBeTruthy();
     expect(depositReceipt.blockNumber).toBeGreaterThan(0);
   });
+
+  xit('Batch balance', async () => {
+    // Method under test.
+    const tokenBalances = await layer2Wallet.getAccountTokenBalances();
+
+    // Expectations.
+    expect(tokenBalances['ETH']['verified']).toBeTruthy();
+  });
 });
 
 // Utility functions

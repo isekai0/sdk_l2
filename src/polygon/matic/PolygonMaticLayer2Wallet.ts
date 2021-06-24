@@ -1,6 +1,7 @@
 import { MaticPOSClient } from '@maticnetwork/maticjs';
 import { BigNumber, ethers } from 'ethers';
 import { EventEmitter } from 'events';
+import { AbiItem } from 'web3-utils';
 
 import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
 import { Deposit, Transfer, Withdrawal, Operation } from '../../Operation';
@@ -98,7 +99,68 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async getAccountTokenBalances(): Promise<AccountBalances> {
-    throw new Error('Not implemented');
+    const abi: AbiItem[] = [
+      {
+        constant: true,
+        inputs: [
+          {
+            name: '_owner',
+            type: 'address',
+          },
+        ],
+        name: 'balanceOf',
+        outputs: [
+          {
+            name: 'balance',
+            type: 'uint256',
+          },
+        ],
+        payable: false,
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ];
+
+    const batch = new this.maticPOSClient.web3Client.web3.BatchRequest();
+
+    const accountAllBalances: AccountBalances = {};
+
+    // TODO: Define proper values for slicing.
+    const tokenDataList = Object.values(this.tokenDataBySymbol).slice(32, 64);
+    const tokenBalances = tokenDataList.map(
+      (tokenData) =>
+        new Promise((resolve) => {
+          const tokenAddress = ethers.utils.getAddress(tokenData.childAddress);
+
+          const contract = new this.maticPOSClient.web3Client.web3.eth.Contract(
+            abi
+          );
+          contract.options.address = tokenAddress;
+
+          const contractCallRequest = contract.methods
+            .balanceOf(this.address)
+            .call.request({}, 'latest');
+          contractCallRequest.callback = (_: any, balanceInWei: string) => {
+            const accBalance: AccountBalances = {
+              [tokenData.symbol]: {
+                verified: balanceInWei,
+              },
+            };
+            resolve(accBalance);
+          };
+
+          batch.add(contractCallRequest);
+        })
+    );
+
+    batch.execute();
+
+    const balanceList = await Promise.all(tokenBalances);
+    for (const balance of balanceList) {
+      Object.assign(accountAllBalances, balance);
+    }
+
+    return accountAllBalances;
   }
 
   async deposit(deposit: Deposit): Promise<Result> {
