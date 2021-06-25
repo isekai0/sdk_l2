@@ -102,9 +102,11 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async getAccountTokenBalances(): Promise<AccountBalances> {
-    const tokenDataList = Object.values(
-      this.tokenDataBySymbol
-    ).filter((tokenData) => uniswapTokenList.includes(tokenData.symbol));
+    const tokenDataList = Object.values(this.tokenDataBySymbol).filter(
+      (tokenData) =>
+        uniswapTokenList.includes(tokenData.symbol) ||
+        tokenData.symbol === 'ETH'
+    );
     const batchSize = 32;
 
     const accountAllBalances: AccountBalances = {};
