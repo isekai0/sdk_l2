@@ -21,7 +21,7 @@ let ethersSigner: ethers.Signer;
 let layer2Wallet: Layer2Wallet;
 
 describe('Query-related tests', () => {
-  const network: Network = 'goerli';
+  const network: Network = 'mainnet';
 
   // Common setup.
   beforeAll(async () => {
@@ -136,8 +136,10 @@ describe('Query-related tests', () => {
     // Method under test.
     const tokenBalances = await layer2Wallet.getAccountTokenBalances();
 
+    const someValue = Object.values(tokenBalances);
+
     // Expectations.
-    expect(tokenBalances['ETH']['verified']).toBeTruthy();
+    expect(someValue[0]['verified']).toBeTruthy();
   });
 });
 

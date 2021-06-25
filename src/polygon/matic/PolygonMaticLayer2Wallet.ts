@@ -1,7 +1,6 @@
 import { MaticPOSClient } from '@maticnetwork/maticjs';
 import { BigNumber, ethers } from 'ethers';
 import { EventEmitter } from 'events';
-import { AbiItem } from 'web3-utils';
 
 import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
 import { Deposit, Transfer, Withdrawal, Operation } from '../../Operation';
@@ -9,7 +8,7 @@ import { Layer2Wallet } from '../../Layer2Wallet';
 import AccountStream from '../../AccountStream';
 
 // TYPES
-import { TokenDataDict } from './types';
+import { TokenData, TokenDataDict } from './types';
 import {
   AccountBalanceState,
   Result,
@@ -18,9 +17,13 @@ import {
   BigNumberish,
 } from '../../types';
 
+// CONSTANTS
+import { erc20BalanceOfAbi, uniswapTokenList } from './constants';
+
 import BN from 'bn.js';
 import { PolygonMaticResult } from './PolygonMaticResult';
 import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
+import { rejects } from 'assert';
 
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
@@ -99,41 +102,43 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async getAccountTokenBalances(): Promise<AccountBalances> {
-    const abi: AbiItem[] = [
-      {
-        constant: true,
-        inputs: [
-          {
-            name: '_owner',
-            type: 'address',
-          },
-        ],
-        name: 'balanceOf',
-        outputs: [
-          {
-            name: 'balance',
-            type: 'uint256',
-          },
-        ],
-        payable: false,
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ];
+    const tokenDataList = Object.values(
+      this.tokenDataBySymbol
+    ).filter((tokenData) => uniswapTokenList.includes(tokenData.symbol));
+    const batchSize = 32;
 
+    const accountAllBalances: AccountBalances = {};
+
+    let idx = 0;
+    while (idx < tokenDataList.length) {
+      const tokenDataSlice = tokenDataList.slice(idx, idx + batchSize);
+      const accountBalances: AccountBalances = await this.getAccountTokenBalancesAux(
+        tokenDataSlice
+      );
+
+      Object.assign(accountAllBalances, accountBalances);
+
+      idx += batchSize;
+    }
+
+    return accountAllBalances;
+  }
+
+  private async getAccountTokenBalancesAux(
+    tokenDataSlice: TokenData[]
+  ): Promise<AccountBalances> {
     const batch = new this.maticPOSClient.web3Client.web3.BatchRequest();
 
     const accountAllBalances: AccountBalances = {};
 
     // TODO: Define proper values for slicing.
-    const tokenDataList = Object.values(this.tokenDataBySymbol).slice(32, 64);
-    const tokenBalances = tokenDataList.map(
+    const tokenBalances = tokenDataSlice.map(
       (tokenData) =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
           const tokenAddress = ethers.utils.getAddress(tokenData.childAddress);
 
           const contract = new this.maticPOSClient.web3Client.web3.eth.Contract(
-            abi
+            erc20BalanceOfAbi
           );
           contract.options.address = tokenAddress;
 
@@ -141,12 +146,17 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
             .balanceOf(this.address)
             .call.request({}, 'latest');
           contractCallRequest.callback = (_: any, balanceInWei: string) => {
-            const accBalance: AccountBalances = {
-              [tokenData.symbol]: {
-                verified: balanceInWei,
-              },
-            };
-            resolve(accBalance);
+            if (balanceInWei) {
+              const accBalance: AccountBalances = {
+                [tokenData.symbol]: {
+                  verified: balanceInWei,
+                },
+              };
+              resolve(accBalance);
+            } else {
+              // Do not include this symbol if balance got undefined.
+              reject(`Could not bring balance for ${tokenData.symbol}`);
+            }
           };
 
           batch.add(contractCallRequest);
