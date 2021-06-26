@@ -18,12 +18,17 @@ import {
 } from '../../types';
 
 // CONSTANTS
-import { erc20BalanceOfAbi, uniswapTokenList } from './constants';
+import {
+  erc20BalanceOfAbi,
+  RequestBatchSize,
+  TenAsDecimal,
+  uniswapTokenList,
+} from './constants';
 
 import BN from 'bn.js';
+import { Decimal } from 'decimal.js';
 import { PolygonMaticResult } from './PolygonMaticResult';
 import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
-import { rejects } from 'assert';
 
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
@@ -89,7 +94,9 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
       { parent: false }
     );
 
-    return balance;
+    const balanceInUnits = this.parseAmountToUnits(balance, tokenSymbol);
+
+    return balanceInUnits;
   }
 
   async getTokenBalanceVerified(tokenSymbol: string): Promise<BigNumberish> {
@@ -98,78 +105,41 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
 
   // TODO: deprecate to use getAccountTokenBalances or refactor to use getAccountTokenBalances impl
   async getAccountBalances(): Promise<[string, string, AccountBalanceState][]> {
-    throw new Error('Not implemented');
+    // Return triple of [symbol, balance, state]
+    const ret: [string, string, AccountBalanceState][] = [];
+
+    const tokenBalaces: AccountBalances = await this.getAccountTokenBalances();
+
+    for (const [symbol, tokenBalance] of Object.entries(tokenBalaces)) {
+      for (const [state, balance] of Object.entries(tokenBalance)) {
+        ret.push([symbol, balance.toString(), state as AccountBalanceState]);
+      }
+    }
+
+    return ret;
   }
 
   async getAccountTokenBalances(): Promise<AccountBalances> {
+    // Filter tokens of interest.
     const tokenDataList = Object.values(this.tokenDataBySymbol).filter(
       (tokenData) =>
         uniswapTokenList.includes(tokenData.symbol) ||
         tokenData.symbol === 'ETH'
     );
-    const batchSize = 32;
 
     const accountAllBalances: AccountBalances = {};
 
+    // Collect token balance batches.
     let idx = 0;
     while (idx < tokenDataList.length) {
-      const tokenDataSlice = tokenDataList.slice(idx, idx + batchSize);
+      const tokenDataSlice = tokenDataList.slice(idx, idx + RequestBatchSize);
       const accountBalances: AccountBalances = await this.getAccountTokenBalancesAux(
         tokenDataSlice
       );
 
       Object.assign(accountAllBalances, accountBalances);
 
-      idx += batchSize;
-    }
-
-    return accountAllBalances;
-  }
-
-  private async getAccountTokenBalancesAux(
-    tokenDataSlice: TokenData[]
-  ): Promise<AccountBalances> {
-    const batch = new this.maticPOSClient.web3Client.web3.BatchRequest();
-
-    const accountAllBalances: AccountBalances = {};
-
-    // TODO: Define proper values for slicing.
-    const tokenBalances = tokenDataSlice.map(
-      (tokenData) =>
-        new Promise((resolve, reject) => {
-          const tokenAddress = ethers.utils.getAddress(tokenData.childAddress);
-
-          const contract = new this.maticPOSClient.web3Client.web3.eth.Contract(
-            erc20BalanceOfAbi
-          );
-          contract.options.address = tokenAddress;
-
-          const contractCallRequest = contract.methods
-            .balanceOf(this.address)
-            .call.request({}, 'latest');
-          contractCallRequest.callback = (_: any, balanceInWei: string) => {
-            if (balanceInWei) {
-              const accBalance: AccountBalances = {
-                [tokenData.symbol]: {
-                  verified: balanceInWei,
-                },
-              };
-              resolve(accBalance);
-            } else {
-              // Do not include this symbol if balance got undefined.
-              reject(`Could not bring balance for ${tokenData.symbol}`);
-            }
-          };
-
-          batch.add(contractCallRequest);
-        })
-    );
-
-    batch.execute();
-
-    const balanceList = await Promise.all(tokenBalances);
-    for (const balance of balanceList) {
-      Object.assign(accountAllBalances, balance);
+      idx += RequestBatchSize;
     }
 
     return accountAllBalances;
@@ -312,5 +282,87 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     const amountUnitsBN = new BN(amountUnits.toString());
 
     return amountUnitsBN;
+  }
+
+  private parseAmountToUnits(weiAmount: string, symbol: string): string {
+    const weiAmountDecimal = new Decimal(weiAmount);
+
+    if (symbol === 'ETH') {
+      const amountUnits = weiAmountDecimal.div(TenAsDecimal.pow(18));
+
+      return amountUnits.toString();
+    }
+
+    // In case of ERC20 token, use the "decimals" information.
+    const tokenData = this.tokenDataBySymbol[symbol];
+    const amountUnits = weiAmountDecimal.div(
+      TenAsDecimal.pow(tokenData.decimals)
+    );
+    return amountUnits.toString();
+  }
+
+  private async getAccountTokenBalancesAux(
+    tokenDataSlice: TokenData[]
+  ): Promise<AccountBalances> {
+    const batch = new this.maticPOSClient.web3Client.web3.BatchRequest();
+
+    const accountAllBalances: AccountBalances = {};
+
+    // TODO: Define proper values for slicing.
+    const tokenBalances = tokenDataSlice.map(
+      (tokenData) =>
+        new Promise((resolve) => {
+          // Get checksummed address for ERC-20 contract in Polygon.
+          const tokenAddress = ethers.utils.getAddress(tokenData.childAddress);
+
+          // Set contract ABI options to consult balance
+          const contract = new this.maticPOSClient.web3Client.web3.eth.Contract(
+            erc20BalanceOfAbi
+          );
+          contract.options.address = tokenAddress;
+
+          // Create contract balance call request at the latest block with the
+          // response callback.
+          const contractCallRequest = contract.methods
+            .balanceOf(this.address)
+            .call.request({}, 'latest');
+          contractCallRequest.callback = (_: any, balanceInWei: string) => {
+            if (balanceInWei) {
+              // Resolve with the token's balance.
+              const accBalance: AccountBalances = {
+                [tokenData.symbol]: {
+                  verified: this.parseAmountToUnits(
+                    balanceInWei,
+                    tokenData.symbol
+                  ),
+                },
+              };
+              resolve(accBalance);
+            } else {
+              // In case of not being able to retrieve the balance, use a
+              // "failed" state with undefined balance. Very commonly, balances
+              // fail to be retrieved when there have been too many requests in
+              // a row.
+              resolve({
+                [tokenData.symbol]: {
+                  failed: undefined,
+                },
+              });
+            }
+          };
+
+          // Add balance request to the request batch.
+          batch.add(contractCallRequest);
+        })
+    );
+
+    batch.execute();
+
+    const balanceList = await Promise.all(tokenBalances);
+    for (const balance of balanceList) {
+      Object.assign(accountAllBalances, balance);
+    }
+
+    return accountAllBalances;
   }
 }

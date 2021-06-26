@@ -84,6 +84,15 @@ describe('Query-related tests', () => {
     expect(balance).toBeTruthy();
   });
 
+  xit('Multiple batch balance', async () => {
+    // Method under test.
+    const tokenBalances = await layer2Wallet.getAccountTokenBalances();
+
+    // Expectations.
+    // ETH must always be there in the result.
+    expect(tokenBalances['ETH']['verified']).toBeTruthy();
+  });
+
   xit('Do Ether deposit', async () => {
     // Test setup.
     const myAddress = layer2Wallet.getAddress();
@@ -130,17 +139,6 @@ describe('Query-related tests', () => {
     expect(depositResult.hash).toBeTruthy();
     expect(depositReceipt.blockNumber).toBeTruthy();
     expect(depositReceipt.blockNumber).toBeGreaterThan(0);
-  });
-
-  xit('Batch balance', async () => {
-    // Method under test.
-    const tokenBalances = await layer2Wallet.getAccountTokenBalances();
-
-    const someValue = Object.values(tokenBalances);
-
-    // Expectations.
-    // ETH must always be in the result.
-    expect(tokenBalances['ETH']['verified']).toBeTruthy();
   });
 });
 

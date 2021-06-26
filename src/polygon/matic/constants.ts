@@ -1,4 +1,9 @@
+import { Decimal } from 'decimal.js';
 import { AbiItem } from 'web3-utils';
+
+export const TenAsDecimal = new Decimal(10);
+
+export const RequestBatchSize = 32;
 
 export const erc20BalanceOfAbi: AbiItem[] = [
   {
