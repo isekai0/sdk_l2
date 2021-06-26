@@ -20,6 +20,7 @@ export enum AccountBalanceState {
   Pending = 'pending',
   Committed = 'committed',
   Verified = 'verified',
+  Failed = 'failed',
 }
 
 export enum OperationType {

@@ -91,6 +91,17 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
       const tokenDataBySymbol: TokenDataDict = {};
       const tokenInfo = this.getTokenInfoByNetwork();
 
+      // Add token information for ETH. This is because ETH is represented as
+      // an ERC-20 token within Polygon/Matic (POS)
+      tokenDataBySymbol['ETH'] = new TokenData(
+        -1, // id,
+        'ETH', // symbol
+        'Ethereum', // name
+        '0x0000000000000000000000000000000000000000', // root_token
+        this.getEthTokenAddressByNetwork(), // child_token
+        18 // decimals
+      );
+
       // Create paged request to bring token mapping information from the Matic
       // network.
       const request: AxiosRequestConfig = {
@@ -128,12 +139,17 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
           // within the Matic network.
           const tokenMappings = body.data.mapping;
           for (const mapping of tokenMappings) {
+            if (!mapping.symbol) {
+              // Skip any entry with no symbol.
+              continue;
+            }
+            // Add token data.
             tokenDataBySymbol[mapping.symbol] = new TokenData(
               mapping.id,
               mapping.symbol,
               mapping.name,
-              mapping.root_token,
-              mapping.child_token,
+              mapping.root_token.substring(0, 42),
+              mapping.child_token.substring(0, 42),
               mapping.decimals
             );
           }
@@ -168,6 +184,15 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
     return tokenInfo;
   }
 
+  getEthTokenAddressByNetwork(): string {
+    const ethAddress = this.MATIC_ETH_TOKEN_ADDRESS_BY_NETWORK[this.network];
+    if (!ethAddress) {
+      throw new Error(`No ETH token address for network ${this.network}`);
+    }
+
+    return ethAddress;
+  }
+
   private MATIC_TOKEN_INFO_BY_NETWORK: Record<
     Network,
     TokenInfoMetadata | undefined
@@ -197,5 +222,18 @@ export class PolygonMaticLayer2Provider implements Layer2Provider {
       mapType: '["POS"]',
       tokenType: 'ERC20',
     },
+  };
+
+  private MATIC_ETH_TOKEN_ADDRESS_BY_NETWORK: Record<
+    Network,
+    string | undefined
+  > = {
+    localhost: undefined,
+    rinkeby: undefined,
+    ropsten: undefined,
+    mainnet: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
+    goerli: '0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa',
+    // 'homestead' is being as synonym for 'mainnet'.
+    homestead: '0x7ceb23fd6bc0add59e62ac25578270cff1b9f619',
   };
 }
