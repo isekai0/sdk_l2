@@ -140,6 +140,30 @@ describe('Query-related tests', () => {
     expect(depositReceipt.blockNumber).toBeTruthy();
     expect(depositReceipt.blockNumber).toBeGreaterThan(0);
   });
+
+  xit('Transfer tokens within Polygon', async () => {
+    // Test setup.
+    const toAddress = '0xA01880D867237157Dd680192565D9CBA774Bd664';
+
+    // Create Transfer data.
+    const transfer: Transfer = new Transfer({
+      tokenSymbol: 'ETH',
+      toAddress,
+      amount: '0.02',
+      fee: '0.01',
+    });
+
+    // Method under test.
+    const transferResult = await layer2Wallet.transfer(transfer);
+
+    // Get receipt.
+    const transferReceipt: Receipt = await transferResult.getReceipt();
+
+    // Expectations.
+    expect(transferResult.hash).toBeTruthy();
+    expect(transferReceipt.blockNumber).toBeTruthy();
+    expect(transferReceipt.blockNumber).toBeGreaterThan(0);
+  });
 });
 
 // Utility functions

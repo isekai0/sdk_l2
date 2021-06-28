@@ -1,6 +1,10 @@
-import { MaticPOSClient } from '@maticnetwork/maticjs';
 import { BigNumber, ethers } from 'ethers';
 import { EventEmitter } from 'events';
+import BN from 'bn.js';
+import { Decimal } from 'decimal.js';
+
+import { MaticPOSClient } from '@maticnetwork/maticjs';
+import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
 
 import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
 import { Deposit, Transfer, Withdrawal, Operation } from '../../Operation';
@@ -25,13 +29,12 @@ import {
   uniswapTokenList,
 } from './constants';
 
-import BN from 'bn.js';
-import { Decimal } from 'decimal.js';
 import { PolygonMaticResult } from './PolygonMaticResult';
-import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
+import { PolygonClientHelper } from './PolygonClientHelper';
 
 export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   private readonly accountStream: AccountStream;
+  private readonly polygonClientHelper: PolygonClientHelper;
 
   private constructor(
     private readonly network: Network,
@@ -42,6 +45,10 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     private readonly maticPOSClient: MaticPOSClient
   ) {
     this.accountStream = new AccountStream(this);
+    this.polygonClientHelper = new PolygonClientHelper(
+      maticPOSClient,
+      this.polygonMaticProvider.getChildChainIdByNetwork()
+    );
   }
 
   static async newInstance(
@@ -176,7 +183,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
         const sendOptions: SendOptions = {
           from: this.address,
           gasPrice: gasPrice.toString(),
-          onTransactionHash: (hash: any) => {
+          onTransactionHash: (hash: string) => {
             // Instantiate Polygon/Matic transaction result. As soon as we get
             // a transaction hash, we can resolve result with hash and the
             // receipt awaitable.
@@ -257,7 +264,82 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async transfer(transfer: Transfer): Promise<Result> {
-    throw new Error('Not implemented');
+    if (transfer.tokenSymbol !== 'ETH') {
+      // Check if token other than ETH is supported.
+      if (!(transfer.tokenSymbol in this.tokenDataBySymbol)) {
+        throw new Error(`Token ${transfer.tokenSymbol} not supported`);
+      }
+    }
+
+    // Get the amount to deposit in Wei, BN type.
+    const transferAmountWeiBN = this.parseAmountToBN(
+      transfer.amount,
+      transfer.tokenSymbol
+    );
+
+    // Get current gas price within the Polygon network.
+    const gasPriceString: string = await this.maticPOSClient.web3Client.web3.eth.getGasPrice();
+    const gasPrice: BigNumber = BigNumber.from(gasPriceString);
+
+    const result = new Promise<Result>((resolveResult, rejectResult) => {
+      // Transfer awaitable is the final transaction receipt.
+      const receiptAwaitable = new Promise(async (resolveReceipt) => {
+        try {
+          // Obtain the address for the ERC-20 token contract. This includes
+          // ETH since it is implemented as an ERC-20 token within Polygon.
+          const tokenData = this.tokenDataBySymbol[transfer.tokenSymbol];
+
+          // Get token address within Polygon network. This is because TRANSFERS
+          // are internal within the L2 network.
+          const tokenAddress = tokenData.childAddress;
+
+          const signedRawTx: string = await this.polygonClientHelper.createERC20SignedTransferTx(
+            tokenAddress,
+            this.address,
+            transfer.toAddress,
+            transferAmountWeiBN,
+            async (txObject) => {
+              const signedRawTx: string = await this.ethersSigner.signTransaction(
+                txObject
+              );
+              return signedRawTx;
+            }
+          );
+
+          this.polygonClientHelper
+            .sendSignedTransaction(signedRawTx)
+            .once('transactionHash', (txHash) => {
+              // Instantiate Polygon/Matic transaction result. As soon as we get
+              // a transaction hash, we can resolve result with hash and the
+              // receipt awaitable.
+              const polygonMaticOperationResult = new PolygonMaticResult(
+                {
+                  hash: txHash,
+                  awaitable: receiptAwaitable,
+                },
+                transfer,
+                gasPrice
+              );
+
+              // Resolve promise with result.
+              resolveResult(polygonMaticOperationResult);
+            })
+            .once('receipt', (receipt) => {
+              // Resolve receipt promise.
+              resolveReceipt(receipt);
+            })
+            .once('error', (error) => {
+              // Reject promise in case of error.
+              rejectResult(error);
+            });
+        } catch (err) {
+          // Reject transaction result if any exception thrown.
+          rejectResult(err);
+        }
+      });
+    });
+
+    return result;
   }
 
   async withdraw(withdrawal: Withdrawal): Promise<Result> {
