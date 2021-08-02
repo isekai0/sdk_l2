@@ -4,7 +4,7 @@ import BN from 'bn.js';
 import { Decimal } from 'decimal.js';
 
 import { MaticPOSClient } from '@maticnetwork/maticjs';
-import { SendOptions } from '@maticnetwork/maticjs/lib/types/Common';
+import { SendOptions } from '@maticnetwork/maticjs/dist/ts/types/Common';
 
 import { PolygonMaticLayer2Provider } from './PolygonMaticLayer2Provider';
 import { Deposit, Transfer, Withdrawal, Operation } from '../../Operation';
@@ -24,6 +24,7 @@ import {
 // CONSTANTS
 import {
   erc20BalanceOfAbi,
+  NEW_HEADER_BLOCK_TOPIC,
   RequestBatchSize,
   TenAsDecimal,
   uniswapTokenList,
@@ -182,6 +183,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
         // Set send options either for ETH or any other ERC20 token.
         const sendOptions: SendOptions = {
           from: this.address,
+          gas: 400_000,
           gasPrice: gasPrice.toString(),
           onTransactionHash: (hash: string) => {
             // Instantiate Polygon/Matic transaction result. As soon as we get
@@ -278,7 +280,7 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
     );
 
     // Get current gas price within the Polygon network.
-    const gasPriceString: string = await this.maticPOSClient.web3Client.web3.eth.getGasPrice();
+    const gasPriceString: string = await this.polygonClientHelper.getGasPrice();
     const gasPrice: BigNumber = BigNumber.from(gasPriceString);
 
     const result = new Promise<Result>((resolveResult, rejectResult) => {
@@ -343,12 +345,178 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
   }
 
   async withdraw(withdrawal: Withdrawal): Promise<Result> {
-    throw new Error('Not implemented');
+    if (withdrawal.tokenSymbol !== 'ETH') {
+      // Check if token other than ETH is supported.
+      if (!(withdrawal.tokenSymbol in this.tokenDataBySymbol)) {
+        throw new Error(`Token ${withdrawal.tokenSymbol} not supported`);
+      }
+    }
+
+    if (withdrawal.toAddress !== this.address) {
+      throw new Error(
+        `Making a withdrawal to an address different from this wallet's is not supported. Address: ${withdrawal.toAddress}`
+      );
+    }
+
+    // Get the amount to withdraw in Wei, BN type.
+    const withdrawalAmountWeiBN = this.parseAmountToBN(
+      withdrawal.amount,
+      withdrawal.tokenSymbol
+    );
+
+    // Get current gas price within the Polygon network.
+    const gasPriceString: string = await this.polygonClientHelper.getGasPrice();
+    const gasPrice: BigNumber = BigNumber.from(gasPriceString);
+
+    // Obtain the address for the ERC-20 token contract. This includes
+    // ETH since it is implemented as an ERC-20 token within Polygon.
+    const tokenData = this.tokenDataBySymbol[withdrawal.tokenSymbol];
+
+    // Get token address within Polygon network. This is because WITHDRAWALS
+    // need to burn such tokens in within the L2 network.
+    const tokenChildAddress = tokenData.childAddress;
+
+    const result = new Promise<Result>((resolveResult, rejectResult) => {
+      // Transfer awaitable is the final transaction receipt.
+      const receiptAwaitable = new Promise(async (resolveReceipt) => {
+        try {
+          const signedRawTx: string = await this.polygonClientHelper.createPOSERC20SignedBurnTx(
+            tokenChildAddress,
+            this.address, // user address
+            withdrawalAmountWeiBN,
+            (txObject) => this.ethersSigner.signTransaction(txObject)
+          );
+
+          this.polygonClientHelper
+            .sendSignedTransaction(signedRawTx)
+            .once('transactionHash', (txHash) => {
+              // Instantiate Polygon/Matic transaction result. As soon as we get
+              // a transaction hash, we can resolve result with hash and the
+              // receipt awaitable.
+              const polygonMaticOperationResult = new PolygonMaticResult(
+                {
+                  hash: txHash,
+                  awaitable: receiptAwaitable,
+                },
+                withdrawal,
+                gasPrice,
+                this.exitFromPolygon
+              );
+
+              // Resolve promise with result.
+              resolveResult(polygonMaticOperationResult);
+            })
+            .once('receipt', (receipt) => {
+              // Resolve receipt promise.
+              resolveReceipt(receipt);
+            })
+            .once('error', (error) => {
+              // Reject promise in case of error.
+              rejectResult(error);
+            });
+        } catch (err) {
+          // Reject transaction result if any exception thrown.
+          rejectResult(err);
+        }
+      });
+    });
+
+    return result;
   }
 
   async getAccountEvents(): Promise<EventEmitter> {
-    throw new Error('Not implemented');
+    if (!this.accountStream.active) {
+      // init cache
+      await this.accountStream.start();
+    }
+
+    return this.accountStream.getAccountEvents();
   }
+
+  public readonly exitFromPolygon = async (
+    childChainBurnTxHash: string,
+    childChainBurnTxBlockNumber: number,
+    alreadyCheckpointed: boolean = false
+  ) => {
+    const parentWeb3 = this.maticPOSClient.web3Client.parentWeb3;
+
+    const exitPromise = new Promise<any>(async (resolve, reject) => {
+      const tokenInfo = this.polygonMaticProvider.getTokenInfoByNetwork();
+      const rootChainAddress = tokenInfo.rootChainAddress;
+
+      // Filter to listen to Checkpoint transactions in the parent chain.
+      const checkpointTxFilter = {
+        address: rootChainAddress,
+        topics: [NEW_HEADER_BLOCK_TOPIC],
+      };
+
+      // Get parent chain's provider.
+      const parentProvider = this.ethersSigner.provider!;
+
+      const invokeExitOperation = async () => {
+        // Note: This gas limit was obtained from the Polygon/Matic github
+        // repository at:
+        // https://github.com/maticnetwork/matic.js/blob/master/examples/pos/erc20/exit.js
+        // It would be ideal if we could estimate it from the transaction abi.
+        const exitGasLimit = 400_000;
+
+        // Obtain parent network's current gas price.
+        const gasPrice: string = await parentWeb3.eth.getGasPrice();
+
+        // Create options object for "exit" transaction.
+        const exitTxOptions: SendOptions = {
+          from: this.address,
+          gas: exitGasLimit,
+          gasPrice: gasPrice,
+          onReceipt: (receipt: any) => {
+            resolve(receipt);
+          },
+          onError: (err: any) => {
+            reject(err);
+          },
+        };
+
+        // Proceed to perform the "exit" operation to release the funds in L1.
+        // This is good to go since the proof of burn has been check-pointed.
+        this.maticPOSClient.exitERC20(childChainBurnTxHash, exitTxOptions);
+      };
+
+      // Check flag to see if the burn operation was already check-pointed.
+      if (alreadyCheckpointed) {
+        invokeExitOperation();
+        return;
+      }
+
+      // Subscribe for blocks containing Polygon Checkpoint transactions in the
+      // parent chain. If such a block includes the block with the "burn"
+      // transaction in the Polygon network, then we may go ahead and free the
+      // tokens back to the owner. This completes the withdrawal operation.
+      parentProvider.on(checkpointTxFilter, async (result) => {
+        // Decode the checkpoint transaction. It contains the start block, end
+        // block and root with types uint256, uint256 and bytes32 respectively.
+        // Keys are "1", "2" and "3" respectively for each datum.
+        const decodedTxParams = parentWeb3.eth.abi.decodeParameters(
+          ['uint256', 'uint256', 'bytes32'],
+          result.data
+        );
+
+        // Obtain the end block.
+        const checkpointEndBlock = parseInt(decodedTxParams['1']);
+
+        // If the end block is greater than the Polygon block containing the
+        // burn transaction, then it has been check-pointed. We may now release
+        // the funds back to the owner.
+        if (childChainBurnTxBlockNumber <= checkpointEndBlock) {
+          // We may now unsubscribe.
+          parentProvider.removeAllListeners(checkpointTxFilter);
+
+          invokeExitOperation();
+        }
+      });
+    });
+
+    return exitPromise;
+  };
 
   private parseAmountToBN(amount: string, symbol: string) {
     if (symbol === 'ETH') {
@@ -390,7 +558,6 @@ export class PolygonMaticLayer2Wallet implements Layer2Wallet {
 
     const accountAllBalances: AccountBalances = {};
 
-    // TODO: Define proper values for slicing.
     const tokenBalances = tokenDataSlice.map(
       (tokenData) =>
         new Promise((resolve) => {

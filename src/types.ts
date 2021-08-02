@@ -57,6 +57,7 @@ export type Receipt = {
   failReason?: string;
   committed?: boolean;
   verified?: boolean;
+  waitForNewBalance: () => Promise<any>;
 };
 
 export interface Result {

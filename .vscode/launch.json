@@ -3,6 +3,7 @@
   "configurations": [
     {
       "name": "Debug Jest Tests",
+      "env": {"SSLKEYLOGFILE": "keys.log"},
       "type": "node",
       "request": "launch",
       "runtimeArgs": [

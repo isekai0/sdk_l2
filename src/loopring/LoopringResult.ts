@@ -6,7 +6,9 @@ import { ethers } from 'ethers';
 export class LoopringResult implements Result {
   // The result holder is an awaited transaction as a result of calling the
   // the smart contract's method.
-  constructor(private resultHolder: any, private operation: Operation) {}
+  constructor(private resultHolder: any, private operation: Operation) {
+    // Left empty.
+  }
 
   get hash(): string {
     // Obtain transaction hash from result object.
@@ -30,6 +32,7 @@ export class LoopringResult implements Result {
       amount: this.operation.amount,
       operationType: this.operation.type,
       fee: '0',
+      waitForNewBalance: async () => Promise.resolve({}),
     };
 
     try {

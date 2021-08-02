@@ -42,6 +42,7 @@ export const MATIC_TOKEN_INFO_BY_NETWORK: Record<
     chainId: 137,
     mapType: '["POS"]',
     tokenType: 'ERC20',
+    rootChainAddress: '0x86E4Dc95c7FBdBf52e33D563BbDB00823894C287',
   },
   goerli: {
     baseURL: 'https://tokenmapper.api.matic.today',
@@ -49,6 +50,7 @@ export const MATIC_TOKEN_INFO_BY_NETWORK: Record<
     chainId: 80001,
     mapType: '["POS"]',
     tokenType: 'ERC20',
+    rootChainAddress: '0x2890bA17EfE978480615e330ecB65333b880928e',
   },
   // 'homestead' is being as synonym for 'mainnet'.
   homestead: {
@@ -57,8 +59,12 @@ export const MATIC_TOKEN_INFO_BY_NETWORK: Record<
     chainId: 137,
     mapType: '["POS"]',
     tokenType: 'ERC20',
+    rootChainAddress: '0x86E4Dc95c7FBdBf52e33D563BbDB00823894C287',
   },
 };
+
+export const NEW_HEADER_BLOCK_TOPIC =
+  '0xba5de06d22af2685c6c7765f60067f7d2b08c2d29f53cdf14d67f6d1c9bfb527';
 
 export const MATIC_ETH_TOKEN_ADDRESS_BY_NETWORK: Record<
   Network,

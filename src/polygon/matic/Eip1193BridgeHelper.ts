@@ -44,13 +44,47 @@ export class Eip1193BridgeHelper extends Eip1193Bridge {
     }
 
     // Invoke parent's method now that the request object is clean.
-    return super.request(request);
+    const result = super.request(request);
+    return result;
+  }
+
+  async send(method: string, params?: Array<any>): Promise<any> {
+    switch (method) {
+      case 'eth_sendTransaction': {
+        if (!this.signer || !params) {
+          return super.send(method, params);
+        }
+
+        const req = ethers.providers.JsonRpcProvider.hexlifyTransaction(
+          params[0]
+        );
+
+        // Note that the "hexlifyTransaction" invoked before may rename the
+        // "gasLimit" attribute to "gas". We need to undo that because "ethers"
+        // does not like that attribute name and fails. It must be "gasLimit".
+        if ('gas' in req && req['gas']) {
+          req['gasLimit'] = req['gas'];
+          delete req['gas'];
+        }
+
+        // Invoke parent class' "sendTransaction" function.
+        const tx = await this.signer.sendTransaction(req);
+        return tx.hash;
+      }
+    }
+    return super.send(method, params);
   }
 
   private deleteParams(paramNames: Array<string>, params?: Array<any>) {
     if (!params || params.length == 0) {
       // Do nothing. Parameter list come empty.
       return;
+    }
+
+    // If 'gas' parameter is present, use 'gasLimit' instead.
+    if ('gas' in params[0] && params[0]['gas']) {
+      params[0]['gasLimit'] = params[0]['gas'];
+      delete params[0]['gas'];
     }
 
     for (const paramName of paramNames) {

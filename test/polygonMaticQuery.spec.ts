@@ -5,6 +5,7 @@ import { Layer2Provider } from '../src/Layer2Provider';
 import { ethers } from 'ethers';
 import { Layer2WalletBuilder } from '../src/Layer2WalletBuilder';
 import { Layer2Wallet } from '../src/Layer2Wallet';
+import { PolygonMaticLayer2Wallet } from '../src/polygon/matic/PolygonMaticLayer2Wallet';
 
 require('dotenv').config();
 
@@ -100,7 +101,7 @@ describe('Query-related tests', () => {
     // Create Deposit data.
     const deposit = Deposit.createDeposit({
       toAddress: myAddress,
-      amount: '0.024', // Desired amount
+      amount: '0.06', // Desired amount
       fee: '0.01', // Desired fee. This is a LAYER ONE regular fee.
     });
 
@@ -124,7 +125,7 @@ describe('Query-related tests', () => {
     const deposit: Deposit = Deposit.createTokenDeposit({
       tokenSymbol: 'DAI',
       toAddress: myAddress,
-      amount: '0.02', // Desired amount.
+      amount: '30.0', // Desired amount.
       fee: '0.01',
       approveForErc20: true,
     });
@@ -141,7 +142,7 @@ describe('Query-related tests', () => {
     expect(depositReceipt.blockNumber).toBeGreaterThan(0);
   });
 
-  xit('Transfer tokens within Polygon', async () => {
+  xit('Transfer ETH within Polygon', async () => {
     // Test setup.
     const toAddress = '0xA01880D867237157Dd680192565D9CBA774Bd664';
 
@@ -149,7 +150,7 @@ describe('Query-related tests', () => {
     const transfer: Transfer = new Transfer({
       tokenSymbol: 'ETH',
       toAddress,
-      amount: '0.02',
+      amount: '0.15',
       fee: '0.01',
     });
 
@@ -164,6 +165,118 @@ describe('Query-related tests', () => {
     expect(transferReceipt.blockNumber).toBeTruthy();
     expect(transferReceipt.blockNumber).toBeGreaterThan(0);
   });
+
+  xit('Transfer ERC20 tokens within Polygon', async () => {
+    // Test setup.
+    const toAddress = '0xA01880D867237157Dd680192565D9CBA774Bd664';
+
+    // Create Transfer data.
+    const transfer: Transfer = new Transfer({
+      tokenSymbol: 'DAI',
+      toAddress,
+      amount: '15',
+      fee: '0.01',
+    });
+
+    // Method under test.
+    const transferResult = await layer2Wallet.transfer(transfer);
+
+    // Get receipt.
+    const transferReceipt: Receipt = await transferResult.getReceipt();
+
+    // Expectations.
+    expect(transferResult.hash).toBeTruthy();
+    expect(transferReceipt.blockNumber).toBeTruthy();
+    expect(transferReceipt.blockNumber).toBeGreaterThan(0);
+  });
+
+  xit('Withdraw ETH from Polygon', async () => {
+    // Test setup.
+
+    // Withdraw back to the LAYER 1 wallet's address.
+    const myAddress = layer2Wallet.getAddress();
+
+    // A withdrawal fee from LAYER TWO.
+    const withdrawalFee = '0.01';
+
+    const withdrawal = new Withdrawal({
+      toAddress: myAddress,
+      amount: '0.07', // Desired amount to withdraw.
+      fee: withdrawalFee, // Desired fee to pay. This is a LAYER TWO fee.
+      tokenSymbol: 'ETH',
+    });
+
+    // Method under test.
+    const withdrawResult = await layer2Wallet.withdraw(withdrawal);
+
+    // Get receipt.
+    const withdrawReceipt: Receipt = await withdrawResult.getReceipt();
+
+    // Await balance update in L1.
+    const newBalanceResult = await withdrawReceipt.waitForNewBalance();
+
+    // Expectations.
+    expect(withdrawResult.hash).toBeTruthy();
+    expect(withdrawReceipt.blockNumber).toBeTruthy();
+    expect(withdrawReceipt.blockNumber).toBeGreaterThan(0);
+    expect(newBalanceResult).toBeTruthy();
+  });
+
+  xit('Withdraw ERC20 token from Polygon', async () => {
+    // Test setup.
+
+    // Withdraw back to the LAYER 1 wallet's address.
+    const myAddress = layer2Wallet.getAddress();
+
+    // A withdrawal fee from LAYER TWO.
+    const withdrawalFee = '0.01';
+
+    const withdrawal = new Withdrawal({
+      toAddress: myAddress,
+      amount: '15', // Desired amount to withdraw.
+      fee: withdrawalFee, // Desired fee to pay. This is a LAYER TWO fee.
+      tokenSymbol: 'DAI',
+    });
+
+    // Method under test.
+    const withdrawResult = await layer2Wallet.withdraw(withdrawal);
+
+    // Get receipt.
+    const withdrawReceipt: Receipt = await withdrawResult.getReceipt();
+
+    // Await balance update in L1.
+    const newBalanceResult = await withdrawReceipt.waitForNewBalance();
+
+    // Expectations.
+    expect(withdrawResult.hash).toBeTruthy();
+    expect(withdrawReceipt.blockNumber).toBeTruthy();
+    expect(withdrawReceipt.blockNumber).toBeGreaterThan(0);
+    expect(newBalanceResult).toBeTruthy();
+  });
+
+  xit('Exit from Polygon', async () => {
+    // Use the code mostly for freeing funds in case the "exit" operation was not
+    // executed after burning the tokens in L2.
+    const polygonWallet = layer2Wallet as PolygonMaticLayer2Wallet;
+    const burnTxHash =
+      '0x9a971b76eb8b4e5ebfa97f258efc3704428db54463278823315e77aaf389abb6';
+    const burnTxBlockNumber = 17487357;
+
+    // Method under test.
+    const result = await polygonWallet.exitFromPolygon(
+      burnTxHash,
+      burnTxBlockNumber,
+      true
+    );
+
+    // Expectations.
+    expect(result).toBeTruthy();
+  });
+
+  xit('', async () => {
+    const events = await layer2Wallet.getAccountEvents();
+    console.log(events);
+  });
 });
 
 // Utility functions
@@ -173,7 +286,7 @@ function getMockedSigner(network: Network): ethers.Signer {
   const ethers = require('ethers');
 
   const ethersProvider = ethers.getDefaultProvider(network, {
-    //alchemy: process.env.TEST_ALCHEMY_API_TOKEN,
+    // alchemy: process.env.TEST_ALCHEMY_API_TOKEN,
     // infura: process.env.TEST_INFURA_PROJECT_ID
   });
 

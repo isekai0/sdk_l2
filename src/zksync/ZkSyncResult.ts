@@ -8,7 +8,9 @@ const ZK_SYNC_TX_HASH_PREFIX = 'sync-tx:';
 export class ZkSyncResult implements Result {
   // This result holder has to be of type 'any' since the corresponding
   // class from zkSync is not exported. (class ETHOperation from wallet.ts)
-  constructor(private resultHolder: any, private operation: Operation) {}
+  constructor(private resultHolder: any, private operation: Operation) {
+    // Left empty.
+  }
 
   get hash(): string {
     // Obtain transaction hash from result object. Remove zkSync transaction
@@ -46,6 +48,7 @@ export class ZkSyncResult implements Result {
       committed: zkSyncReceipt.block?.committed,
       verified: zkSyncReceipt.block?.verified,
       operationType: this.operation.type,
+      waitForNewBalance: async () => Promise.resolve({}),
     };
 
     return result;
